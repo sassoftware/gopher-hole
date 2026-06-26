@@ -31,7 +31,7 @@ func TestInit_DefaultLevelIsInfo(t *testing.T) {
 	os.Unsetenv(logLevelEnvVar)
 
 	// Re-initialize by calling init directly via reinit helper
-	reinitLogger()
+	initLogger()
 
 	assert.Equal(t, zerolog.InfoLevel, GetLogger().GetLevel())
 }
@@ -40,7 +40,7 @@ func TestInit_SasLogLevelEnvVar(t *testing.T) {
 	t.Setenv(sasLogLevelEnvVar, "debug")
 	defer func() { os.Unsetenv(sasLogLevelEnvVar) }()
 
-	reinitLogger()
+	initLogger()
 
 	assert.Equal(t, zerolog.DebugLevel, GetLogger().GetLevel())
 }
@@ -50,7 +50,7 @@ func TestInit_LogLevelEnvVar(t *testing.T) {
 	t.Setenv(logLevelEnvVar, "warn")
 	defer func() { os.Unsetenv(logLevelEnvVar) }()
 
-	reinitLogger()
+	initLogger()
 
 	assert.Equal(t, zerolog.WarnLevel, GetLogger().GetLevel())
 }
@@ -59,7 +59,7 @@ func TestInit_SasLogLevelTakesPrecedenceOverLogLevel(t *testing.T) {
 	t.Setenv(sasLogLevelEnvVar, "error")
 	t.Setenv(logLevelEnvVar, "debug")
 
-	reinitLogger()
+	initLogger()
 
 	assert.Equal(t, zerolog.ErrorLevel, GetLogger().GetLevel())
 }
@@ -68,7 +68,7 @@ func TestInit_InvalidLevelFallsBackToInfo(t *testing.T) {
 	t.Setenv(sasLogLevelEnvVar, "notvalid")
 	os.Unsetenv(logLevelEnvVar)
 
-	reinitLogger()
+	initLogger()
 
 	assert.Equal(t, zerolog.InfoLevel, GetLogger().GetLevel())
 }
@@ -76,26 +76,4 @@ func TestInit_InvalidLevelFallsBackToInfo(t *testing.T) {
 func TestGetSource_ReturnsNonEmptyString(t *testing.T) {
 	src := getSource()
 	assert.NotEmpty(t, src)
-}
-
-// reinitLogger re-runs the package-level initialization logic so tests can
-// observe the effect of different environment variable configurations.
-func reinitLogger() {
-	level := zerolog.InfoLevel
-	if envLevel, ok := os.LookupEnv(sasLogLevelEnvVar); ok {
-		if parsedLevel, err := zerolog.ParseLevel(envLevel); err == nil {
-			level = parsedLevel
-		}
-	} else if envLevel, ok := os.LookupEnv(logLevelEnvVar); ok {
-		if parsedLevel, err := zerolog.ParseLevel(envLevel); err == nil {
-			level = parsedLevel
-		}
-	}
-	logger = zerolog.New(
-		zerolog.ConsoleWriter{Out: os.Stderr}).Level(level).
-		With().
-		Timestamp().
-		Caller().
-		Str("source", getSource()).
-		Logger()
 }

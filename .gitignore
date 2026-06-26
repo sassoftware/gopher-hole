@@ -1,0 +1,9 @@
+*.swp
+vendor
+build
+*.pdf
+*.prof
+coverage.*
+*.diff
+*.out
+.DS_Store

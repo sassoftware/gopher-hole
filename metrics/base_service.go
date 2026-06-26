@@ -76,38 +76,41 @@ func CollectBaseServiceMetrics(ctx context.Context) error {
 	go MonitorProcessStats(ctx)
 
 	// Start a goroutine to periodically collect and store CPU and Memory availability
-	go func() {
-		ticker := time.NewTicker(TimeBetweenCollections)
-		defer ticker.Stop()
-		<-ticker.C // Initial wait before first collection
-		for {
-			procStats := getProcessStats()
-			// Measure CPU availability
-			if procStats.CPUAvailability == -1.0 {
-				logger.Debug().Msg("Failed to measure service CPU availability")
-			} else {
-				cpuAvailMetric.InsertRecord(float64(procStats.CPUAvailability))
-				logger.Debug().Float64(ServiceCPUAvailableMetricName, procStats.CPUAvailability).Msg("Service CPU availability metric collected")
-			}
+	go periodicCollect(ctx, cpuAvailMetric, memAvailMetric)
 
-			// Measure Memory availability
-			if procStats.MemoryAvailability == -1.0 {
-				logger.Debug().Msg("Failed to measure service memory availability")
-			} else {
-				memAvailMetric.InsertRecord(float64(procStats.MemoryAvailability))
-				logger.Debug().Float64(ServiceMemoryAvailableMetricName, procStats.MemoryAvailability).Msg("Service memory availability metric collected")
-			}
-
-			// Wait for a constant amount of time between collections
-			select {
-			case <-ticker.C:
-				continue
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
 	return nil
+}
+
+func periodicCollect(ctx context.Context, cpuAvailMetric, memAvailMetric *Metric) {
+	ticker := time.NewTicker(TimeBetweenCollections)
+	defer ticker.Stop()
+	<-ticker.C // Initial wait before first collection
+	for {
+		procStats := getProcessStats()
+		// Measure CPU availability
+		if procStats.CPUAvailability == -1.0 {
+			logger.Debug().Msg("Failed to measure service CPU availability")
+		} else {
+			cpuAvailMetric.InsertRecord(float64(procStats.CPUAvailability))
+			logger.Debug().Float64(ServiceCPUAvailableMetricName, procStats.CPUAvailability).Msg("Service CPU availability metric collected")
+		}
+
+		// Measure Memory availability
+		if procStats.MemoryAvailability == -1.0 {
+			logger.Debug().Msg("Failed to measure service memory availability")
+		} else {
+			memAvailMetric.InsertRecord(float64(procStats.MemoryAvailability))
+			logger.Debug().Float64(ServiceMemoryAvailableMetricName, procStats.MemoryAvailability).Msg("Service memory availability metric collected")
+		}
+
+		// Wait for a constant amount of time between collections
+		select {
+		case <-ticker.C:
+			continue
+		case <-ctx.Done():
+			return
+		}
+	}
 }
 
 func memoryAvailability() float64 {

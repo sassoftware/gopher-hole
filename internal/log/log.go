@@ -18,6 +18,10 @@ const (
 )
 
 func init() {
+	initLogger()
+}
+
+func initLogger() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
 	zerolog.TimestampFieldName = "timeStamp"
 

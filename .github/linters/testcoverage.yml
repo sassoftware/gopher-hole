@@ -37,7 +37,6 @@ override:
 exclude:
   # Exclude files or packages matching their paths
   paths:
-    - \.pb\.go$    # excludes all protobuf generated files
     - ^tests/
     - ^test/
     - shim\.go$   # excludes our shim files that mainly contain broker integration code

@@ -3,6 +3,7 @@ package metrics
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/sassoftware/gopher-hole/safebuffer"
 	"github.com/stretchr/testify/assert"
@@ -534,4 +535,109 @@ func TestAddHistorySlidingWindow(t *testing.T) {
 		assert.Equal(t, 200, chd[0].(int), "oldest entry should be removed")
 		assert.Equal(t, 9999, chd[len(chd)-1].(int), "newest entry should be last")
 	})
+}
+
+func TestPeriodicCollectInsertsKnownAvailabilityMetrics(t *testing.T) {
+	// Save original state
+	originalTimeBetweenCollections := TimeBetweenCollections
+	originalMemHistory := memHistory
+	originalCPUHistory := cpuMillicoreHistory
+	originalMaxMemory := maxMemory
+	originalCPULimit := cpuMillicoreLimit
+
+	// Restore original state after test
+	defer func() {
+		TimeBetweenCollections = originalTimeBetweenCollections
+		memHistory = originalMemHistory
+		cpuMillicoreHistory = originalCPUHistory
+		maxMemory = originalMaxMemory
+		cpuMillicoreLimit = originalCPULimit
+	}()
+
+	TimeBetweenCollections = 10 * time.Millisecond
+	memHistory = safebuffer.NewSafeBuffer(3)
+	memHistory.Add(uint64(2500))
+	maxMemory = 10000
+
+	cpuMillicoreHistory = safebuffer.NewSafeBuffer(3)
+	cpuMillicoreHistory.Add(500)
+	cpuMillicoreLimit = 1000
+
+	cpuAvailMetric := NewMetric(ServiceCPUAvailableMetricName, []string{SystemLabel})
+	memAvailMetric := NewMetric(ServiceMemoryAvailableMetricName, []string{SystemLabel})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		periodicCollect(ctx, cpuAvailMetric, memAvailMetric)
+	}()
+
+	assert.Eventually(t, func() bool {
+		return len(cpuAvailMetric.getRecords()) > 0 && len(memAvailMetric.getRecords()) > 0
+	}, 300*time.Millisecond, 5*time.Millisecond)
+
+	// CPU availability = 1 - (500/1000) = 0.5, memory availability = 1 - (2500/10000) = 0.75
+	assert.Equal(t, 0.5, cpuAvailMetric.getRecords()[0].value)
+	assert.Equal(t, 0.75, memAvailMetric.getRecords()[0].value)
+
+	cancel()
+	assert.Eventually(t, func() bool {
+		select {
+		case <-done:
+			return true
+		default:
+			return false
+		}
+	}, 200*time.Millisecond, 5*time.Millisecond)
+}
+
+func TestPeriodicCollectSkipsUnknownAvailabilityMetrics(t *testing.T) {
+	// Save original state
+	originalTimeBetweenCollections := TimeBetweenCollections
+	originalMemHistory := memHistory
+	originalCPUHistory := cpuMillicoreHistory
+	originalMaxMemory := maxMemory
+	originalCPULimit := cpuMillicoreLimit
+
+	// Restore original state after test
+	defer func() {
+		TimeBetweenCollections = originalTimeBetweenCollections
+		memHistory = originalMemHistory
+		cpuMillicoreHistory = originalCPUHistory
+		maxMemory = originalMaxMemory
+		cpuMillicoreLimit = originalCPULimit
+	}()
+
+	TimeBetweenCollections = 10 * time.Millisecond
+	memHistory = safebuffer.NewSafeBuffer(3)
+	cpuMillicoreHistory = safebuffer.NewSafeBuffer(3)
+	maxMemory = 0
+	cpuMillicoreLimit = 0
+
+	cpuAvailMetric := NewMetric(ServiceCPUAvailableMetricName, []string{SystemLabel})
+	memAvailMetric := NewMetric(ServiceMemoryAvailableMetricName, []string{SystemLabel})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		periodicCollect(ctx, cpuAvailMetric, memAvailMetric)
+	}()
+
+	// Allow at least one collection cycle after the initial wait.
+	time.Sleep(35 * time.Millisecond)
+
+	cancel()
+	assert.Eventually(t, func() bool {
+		select {
+		case <-done:
+			return true
+		default:
+			return false
+		}
+	}, 200*time.Millisecond, 5*time.Millisecond)
+
+	assert.Len(t, cpuAvailMetric.getRecords(), 0)
+	assert.Len(t, memAvailMetric.getRecords(), 0)
 }
