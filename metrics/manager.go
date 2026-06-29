@@ -7,11 +7,13 @@ import (
 	"maps"
 	"slices"
 	"sync"
+
+	"github.com/sassoftware/gopher-hole/internal/key"
 )
 
 var (
 	// ManagerKey is the plugin key for the metrics manager.
-	ManagerKey = key{Name: "gopher-hole/metrics/manager"}
+	ManagerKey = key.Key{Name: "gopher-hole/metrics/manager"}
 )
 
 type Manager struct {
