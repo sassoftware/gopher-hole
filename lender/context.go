@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/sassoftware/gopher-hole/internal/key"
+	"github.com/sassoftware/gopher-hole/key"
 )
 
 var lenderkey = key.Key{Name: "lender"}

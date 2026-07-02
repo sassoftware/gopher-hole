@@ -8,7 +8,7 @@ import (
 	"slices"
 	"sync"
 
-	"github.com/sassoftware/gopher-hole/internal/key"
+	"github.com/sassoftware/gopher-hole/key"
 )
 
 var (

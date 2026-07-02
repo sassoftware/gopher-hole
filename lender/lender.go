@@ -11,7 +11,13 @@ import (
 	"time"
 
 	"github.com/sassoftware/gopher-hole/internal/log"
+	"github.com/sassoftware/gopher-hole/key"
 	"github.com/sassoftware/gopher-hole/metrics"
+)
+
+var (
+	// LenderKey is the plugin key for the lender.
+	LenderKey = key.Key{Name: "gopher-hole/lender"}
 )
 
 const (
@@ -85,6 +91,7 @@ type Lender struct {
 //   - error: An error if the metrics manager cannot be retrieved from the context
 func NewLender(ctx *context.Context) (*Lender, error) {
 	metricsManager, err := metrics.GetManagerFromContext(*ctx)
+	fmt.Println("metricsManager:", metricsManager)
 	if err != nil {
 		logger.Debug().Msgf("Lender failed to get metrics manager from context: %v", err)
 		return nil, err
@@ -415,4 +422,8 @@ func (l *Lender) watchMetrics() { //nolint:gocognit
 			}
 		}
 	}
+}
+
+func (l *Lender) Started() bool {
+	return l.started
 }
