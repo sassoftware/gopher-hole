@@ -2,6 +2,7 @@ package lender
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"os"
@@ -62,6 +63,14 @@ type lendeeRecord struct {
 	model           AIModel
 }
 
+// MetricSource is the read-only view the lender needs over a metrics registry:
+// the ability to look up a single metric by name. Any type that provides this
+// method — such as a metrics.Manager — satisfies it, so the lender never
+// depends on a concrete metrics manager implementation.
+type MetricSource interface {
+	GetMetric(name string) (*metrics.Metric, error)
+}
+
 // Lender manages the lending and tracking of resources to multiple lendees.
 // It provides thread-safe operations for managing lendee records and includes
 // metrics collection capabilities. The Lender uses a nested map structure
@@ -71,7 +80,7 @@ type Lender struct {
 	ctx                *context.Context
 	lendees            map[string]map[string]*lendeeRecord
 	lendeesMu          sync.Mutex
-	metricsMgr         *metrics.Manager
+	metricSource       MetricSource
 	scaleUpThreshold   float64
 	scaleDownThreshold float64
 	interval           time.Duration
@@ -79,28 +88,27 @@ type Lender struct {
 	started            bool
 }
 
-// NewLender creates a new Lender instance with the provided context.
-// It initializes the lender with a metrics manager retrieved from the context,
-// an empty map for tracking lendees, and stores the provided context.
+// NewLender creates a new Lender instance with the provided context and metric source.
+// The metric source supplies the metric values the lender evaluates; it is injected
+// explicitly rather than pulled from the context so the lender does not depend on a
+// concrete metrics manager.
 //
 // Parameters:
-//   - ctx: A pointer to the context containing the metrics manager
+//   - ctx: A pointer to the context used for cancellation
+//   - source: The MetricSource the lender queries for metric values
 //
 // Returns:
 //   - *Lender: A pointer to the newly created Lender instance
-//   - error: An error if the metrics manager cannot be retrieved from the context
-func NewLender(ctx *context.Context) (*Lender, error) {
-	metricsManager, err := metrics.GetManagerFromContext(*ctx)
-	fmt.Println("metricsManager:", metricsManager)
-	if err != nil {
-		logger.Debug().Msgf("Lender failed to get metrics manager from context: %v", err)
-		return nil, err
+//   - error: An error if the provided metric source is nil
+func NewLender(ctx *context.Context, source MetricSource) (*Lender, error) {
+	if source == nil {
+		return nil, errors.New("lender: metric source must not be nil")
 	}
 
 	return &Lender{
 		ctx:                ctx,
 		lendees:            make(map[string]map[string]*lendeeRecord),
-		metricsMgr:         metricsManager,
+		metricSource:       source,
 		scaleUpThreshold:   getScaleUpThreshold(),
 		scaleDownThreshold: getScaleDownThreshold(),
 		interval:           getInterval(),
@@ -334,7 +342,7 @@ func (l *Lender) watchMetrics() { //nolint:gocognit
 				for _, metric := range requiredMetrics {
 					if metric != nil {
 						// Request the metric from the metrics manager
-						retrievedMetric, err := l.metricsMgr.GetMetric(metric.GetName())
+						retrievedMetric, err := l.metricSource.GetMetric(metric.GetName())
 						if err != nil {
 							logger.Debug().Msgf("Failed to retrieve metric '%s': %v", metric.GetName(), err)
 							// Log the error but continue processing other metrics

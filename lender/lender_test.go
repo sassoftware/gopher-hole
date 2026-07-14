@@ -69,34 +69,26 @@ func (m *MockAIModel) Predict(_ []*metrics.Metric) (float64, error) {
 func TestNewLender(t *testing.T) {
 	tests := map[string]struct {
 		name           string
-		setupContext   func() *context.Context
+		source         MetricSource
 		expectError    bool
 		expectedResult func(*testing.T, *Lender, error)
 	}{
-		"with metrics manager in context": {
-			name: "valid context with metrics manager",
-			setupContext: func() *context.Context {
-				ctx := context.Background()
-				mgr := metrics.NewManager()
-				ctx = metrics.NewManagerContext(ctx, mgr)
-				return &ctx
-			},
+		"with metric source": {
+			name:        "valid metric source",
+			source:      metrics.NewManager(),
 			expectError: false,
 			expectedResult: func(t *testing.T, lender *Lender, err error) {
 				assert.NoError(t, err)
 				assert.NotNil(t, lender)
 				assert.NotNil(t, lender.ctx)
 				assert.NotNil(t, lender.lendees)
-				assert.NotNil(t, lender.metricsMgr)
+				assert.NotNil(t, lender.metricSource)
 				assert.Empty(t, lender.lendees)
 			},
 		},
-		"without metrics manager in context": {
-			name: "context without metrics manager",
-			setupContext: func() *context.Context {
-				ctx := context.Background()
-				return &ctx
-			},
+		"without metric source": {
+			name:        "nil metric source",
+			source:      nil,
 			expectError: true,
 			expectedResult: func(t *testing.T, lender *Lender, err error) {
 				assert.Error(t, err)
@@ -107,8 +99,8 @@ func TestNewLender(t *testing.T) {
 
 	for testName, tc := range tests {
 		t.Run(testName, func(t *testing.T) {
-			ctx := tc.setupContext()
-			lender, err := NewLender(ctx)
+			ctx := context.Background()
+			lender, err := NewLender(&ctx, tc.source)
 			tc.expectedResult(t, lender, err)
 		})
 	}
@@ -128,8 +120,7 @@ func TestRegisterLendee(t *testing.T) {
 			setupLender: func() *Lender {
 				ctx := context.Background()
 				mgr := metrics.NewManager()
-				ctx = metrics.NewManagerContext(ctx, mgr)
-				lender, err := NewLender(&ctx)
+				lender, err := NewLender(&ctx, mgr)
 				assert.NoError(t, err)
 				// Initialize the group map
 				lender.lendees[testGroup] = make(map[string]*lendeeRecord)
@@ -145,8 +136,7 @@ func TestRegisterLendee(t *testing.T) {
 			setupLender: func() *Lender {
 				ctx := context.Background()
 				mgr := metrics.NewManager()
-				ctx = metrics.NewManagerContext(ctx, mgr)
-				lender, err := NewLender(&ctx)
+				lender, err := NewLender(&ctx, mgr)
 				assert.NoError(t, err)
 				return lender
 			},
@@ -190,8 +180,7 @@ func TestRegisterLendee_ConcurrentAccess(t *testing.T) {
 	// Test concurrent access to RegisterLendee to ensure thread safety
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Register multiple lendees concurrently
@@ -237,8 +226,7 @@ func TestUnregisterLendee_CleansUpMetrics(t *testing.T) {
 	// Test that unregistering a lendee cleans up its prometheus metrics
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	lendeeName := "testLendee"
@@ -287,8 +275,7 @@ func TestRegisterLendee_OverwriteExisting(t *testing.T) {
 	// Test that registering a lendee with the same name overwrites the existing one
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Register second lendee with the same name
@@ -308,8 +295,7 @@ func TestLender_Start(t *testing.T) {
 	// Setup context with metrics manager
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request
@@ -358,8 +344,7 @@ func TestLender_Start_MissingMetrics(t *testing.T) {
 	// Setup context with metrics manager
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request but don't register them
@@ -603,13 +588,12 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 			defer cancel()
 
 			mgr := metrics.NewManager()
-			ctx = metrics.NewManagerContext(ctx, mgr)
 
 			// Create lender with custom configuration
 			lender := &Lender{
 				ctx:                &ctx,
 				lendees:            make(map[string]map[string]*lendeeRecord),
-				metricsMgr:         mgr,
+				metricSource:       mgr,
 				scaleUpThreshold:   tc.scaleUpThreshold,
 				scaleDownThreshold: tc.scaleDownThreshold,
 				interval:           tc.interval,
@@ -671,8 +655,7 @@ func TestLender_watchMetrics_MissingMetrics(t *testing.T) {
 	defer cancel()
 
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request but don't register them
@@ -800,10 +783,9 @@ func TestNewLender_EnvironmentVariables(t *testing.T) {
 			// Setup context with metrics manager
 			ctx := context.Background()
 			mgr := metrics.NewManager()
-			ctx = metrics.NewManagerContext(ctx, mgr)
 
 			// Create lender and verify configuration
-			lender, err := NewLender(&ctx)
+			lender, err := NewLender(&ctx, mgr)
 			assert.NoError(t, err)
 			assert.NotNil(t, lender)
 
@@ -835,8 +817,7 @@ func TestLender_watchMetrics_MaxCreditsConfiguration(t *testing.T) {
 	defer cancel()
 
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Verify the custom value was set correctly
@@ -976,8 +957,7 @@ func TestLender_addCredit(t *testing.T) {
 			// Setup lender
 			ctx := context.Background()
 			mgr := metrics.NewManager()
-			ctx = metrics.NewManagerContext(ctx, mgr)
-			lender, err := NewLender(&ctx)
+			lender, err := NewLender(&ctx, mgr)
 			assert.NoError(t, err)
 
 			// Setup lendee record
@@ -1074,8 +1054,7 @@ func TestLender_removeCredit(t *testing.T) {
 			// Setup lender
 			ctx := context.Background()
 			mgr := metrics.NewManager()
-			ctx = metrics.NewManagerContext(ctx, mgr)
-			lender, err := NewLender(&ctx)
+			lender, err := NewLender(&ctx, mgr)
 			assert.NoError(t, err)
 
 			// Setup lendee record
@@ -1103,8 +1082,7 @@ func TestLender_addCredit_removeCredit_Integration(t *testing.T) {
 	// Test the integration between addCredit and removeCredit functions
 	ctx := context.Background()
 	mgr := metrics.NewManager()
-	ctx = metrics.NewManagerContext(ctx, mgr)
-	lender, err := NewLender(&ctx)
+	lender, err := NewLender(&ctx, mgr)
 	assert.NoError(t, err)
 
 	// Create a mock lendee with a max of 3 credits
