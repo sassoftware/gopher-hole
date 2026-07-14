@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/sassoftware/gopher-hole/safebuffer"
@@ -62,6 +63,13 @@ func (m *Metric) InsertRecord(value float64) {
 // GetName returns the name of the metric.
 func (m *Metric) GetName() string {
 	return m.name
+}
+
+// HasLabel reports whether the metric was registered with the given label.
+// It lets a registry outside this package (e.g. a metrics manager) filter
+// metrics by label without access to the unexported label slice.
+func (m *Metric) HasLabel(label string) bool {
+	return slices.Contains(m.labels, label)
 }
 
 func (m *Metric) getRecords() []record {
