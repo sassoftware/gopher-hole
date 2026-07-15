@@ -1,6 +1,6 @@
 //go:build darwin
 
-package metrics
+package monitor
 
 import (
 	"context"
@@ -9,5 +9,5 @@ import (
 
 func MonitorProcessStats(ctx context.Context) {
 	cpuMillicoreLimit = runtime.NumCPU() * 1000
-	ProcessMonitorNonWindows(ctx)
+	processMonitorNonWindows(ctx)
 }

@@ -1,6 +1,6 @@
 //go:build windows
 
-package metrics
+package monitor
 
 import (
 	"context"

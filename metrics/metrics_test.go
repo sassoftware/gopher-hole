@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/sassoftware/gopher-hole/util/math"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -63,7 +64,7 @@ func Test_Metric_GetMostRecent(t *testing.T) {
 	assert.Equal(t, 0.0, actual)
 
 	// Insert test records
-	for _, r := range getTestRecords() {
+	for _, r := range getDefaultTestRecords() {
 		testMetric.insertRecord(r.value, r.timestamp)
 	}
 
@@ -89,7 +90,7 @@ func Test_Metric_Trend(t *testing.T) {
 	assert.Equal(t, 0.0, actual)
 
 	// Insert test records
-	for _, r := range getTestRecords() {
+	for _, r := range getDefaultTestRecords() {
 		testMetric.insertRecord(r.value, r.timestamp)
 	}
 
@@ -192,7 +193,7 @@ func Test_Metric_getRecordsWithinTimeframe(t *testing.T) {
 	defer func() {
 		nowFunc = time.Now
 	}()
-	sampleRecords := getTestRecords()
+	sampleRecords := getDefaultTestRecords()
 	for _, r := range sampleRecords {
 		m.insertRecord(r.value, r.timestamp)
 	}
@@ -234,11 +235,11 @@ func Test_Metric_getRecordsWithinTimeframe(t *testing.T) {
 func Test_convertRecordsToDataPoints(t *testing.T) {
 	tests := map[string]struct {
 		records  []record
-		expected []dataPoint
+		expected []math.DataPoint
 	}{
 		"all points": {
-			records: getTestRecords(),
-			expected: []dataPoint{
+			records: getDefaultTestRecords(),
+			expected: []math.DataPoint{
 				{0.0, 10.0},
 				{1.0, 12.0},
 				{2.0, 11.0},
@@ -256,100 +257,7 @@ func Test_convertRecordsToDataPoints(t *testing.T) {
 	}
 }
 
-func Test_calculateLinearRegressionSlope(t *testing.T) {
-	tests := map[string]struct {
-		dataPoints []dataPoint
-		expected   float64
-		expectErr  bool
-	}{
-		"no dataPoints": {
-			dataPoints: []dataPoint{},
-			expectErr:  true,
-		},
-		"single dataPoint": {
-			dataPoints: []dataPoint{
-				{0.0, 10.0},
-			},
-			expectErr: true,
-		},
-		"zero denominator": {
-			dataPoints: []dataPoint{
-				{1.0, 10.0},
-				{1.0, 11.0},
-				{1.0, 12.0},
-			},
-			expectErr: true,
-		},
-		"simple positive slope calculation": {
-			dataPoints: []dataPoint{
-				{0.0, 0.0},
-				{1.0, 1.0},
-				{2.0, 2.0},
-				{3.0, 3.0},
-				{4.0, 4.0},
-				{5.0, 5.0},
-			},
-			expected: 1.0,
-		},
-		"simple negative slope calculation": {
-			dataPoints: []dataPoint{
-				{0.0, 5.0},
-				{1.0, 4.0},
-				{2.0, 3.0},
-				{3.0, 2.0},
-				{4.0, 1.0},
-				{5.0, 0.0},
-			},
-			expected: -1.0,
-		},
-		"simple zero slope calculation": {
-			dataPoints: []dataPoint{
-				{0.0, 1.0},
-				{1.0, 1.0},
-				{2.0, 1.0},
-				{3.0, 1.0},
-				{4.0, 1.0},
-				{5.0, 1.0},
-			},
-			expected: 0.0,
-		},
-		"complex positive slope calculation": {
-			dataPoints: []dataPoint{
-				{0.0, 10.0},
-				{1.0, 12.0},
-				{2.0, 11.0},
-				{3.0, 13.0},
-				{4.0, 15.0},
-				{5.0, 16.0},
-			},
-			expected: defaultRecordsSlope,
-		},
-		"complex negative slope calculation": {
-			dataPoints: []dataPoint{
-				{5.0, 10.0},
-				{4.0, 12.0},
-				{3.0, 11.0},
-				{2.0, 13.0},
-				{1.0, 15.0},
-				{0.0, 16.0},
-			},
-			expected: -defaultRecordsSlope,
-		},
-	}
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			actual, err := calculateLinearRegressionSlope(tc.dataPoints)
-			if tc.expectErr {
-				assert.Error(t, err)
-				return
-			}
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expected, actual)
-		})
-	}
-}
-
-func getTestRecords() []record {
+func getDefaultTestRecords() []record {
 	callTime := nowFunc()
 	return []record{
 		{10.0, callTime.Add(-5 * time.Second)},

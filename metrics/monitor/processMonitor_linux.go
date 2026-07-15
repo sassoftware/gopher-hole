@@ -1,4 +1,4 @@
-package metrics
+package monitor
 
 import (
 	"context"
@@ -6,5 +6,5 @@ import (
 
 func MonitorProcessStats(ctx context.Context) {
 	readCgroupLimits()
-	ProcessMonitorNonWindows(ctx)
+	processMonitorNonWindows(ctx)
 }

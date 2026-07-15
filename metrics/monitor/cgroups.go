@@ -1,4 +1,4 @@
-package metrics
+package monitor
 
 import (
 	"os"
@@ -45,10 +45,8 @@ func detectCgroupVersion() CgroupVersion {
 func readCgroupLimits() {
 	cgroupSyncOnce.Do(func() {
 		detectedCgroupVersion := detectCgroupVersion()
-		maxMemoryVal := getMaxMemoryFromCgroup(detectedCgroupVersion)
-		setMaxMemory(maxMemoryVal)
-		cpuLimitVal := getCPULimitFromCgroup(detectedCgroupVersion)
-		setCPUMillicoreLimit(cpuLimitVal)
+		maxMemory = getMaxMemoryFromCgroup(detectedCgroupVersion)
+		cpuMillicoreLimit = getCPULimitFromCgroup(detectedCgroupVersion)
 	})
 }
 

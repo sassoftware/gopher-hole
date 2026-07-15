@@ -1,95 +1,16 @@
-package metrics
+//go:build !windows
+
+package monitor
 
 import (
 	"context"
 	"testing"
+	"testing/synctest"
 	"time"
 
-	"github.com/sassoftware/gopher-hole/safebuffer"
+	"github.com/sassoftware/gopher-hole/util/safebuffer"
 	"github.com/stretchr/testify/assert"
 )
-
-func Test_IsUnhealthyUsage(t *testing.T) {
-	tests := []struct {
-		name               string
-		cpuAvailability    float64
-		memoryAvailability float64
-		expectedUnhealthy  bool
-	}{
-		{
-			name:               "Healthy - low CPU and memory usage",
-			cpuAvailability:    0.95, // 95% CPU availability
-			memoryAvailability: 0.95, // 95% Memory availability
-			expectedUnhealthy:  false,
-		},
-		{
-			name:               "Unhealthy - high CPU usage",
-			cpuAvailability:    0.05, // 5% CPU availability
-			memoryAvailability: 0.95, // 95% Memory availability
-			expectedUnhealthy:  true,
-		},
-		{
-			name:               "Unhealthy - high memory usage",
-			cpuAvailability:    0.95, // 95% CPU availability
-			memoryAvailability: 0.05, // 5% Memory availability
-			expectedUnhealthy:  true,
-		},
-		{
-			name:               "Unhealthy - both CPU and memory high",
-			cpuAvailability:    0.05, // 5% CPU availability
-			memoryAvailability: 0.05, // 5% Memory availability
-			expectedUnhealthy:  true,
-		},
-		{
-			name:               "Healthy - exactly at threshold",
-			cpuAvailability:    0.1, // 10% CPU availability
-			memoryAvailability: 0.1, // 10% Memory availability
-			expectedUnhealthy:  false,
-		},
-		{
-			name:               "Unhealthy - just above CPU threshold",
-			cpuAvailability:    0.09, // 9% CPU availability
-			memoryAvailability: 0.95, // 95% Memory availability
-			expectedUnhealthy:  true,
-		},
-		{
-			name:               "Healthy - unknown cpu, but memory is healthy so we report healthy",
-			cpuAvailability:    -1, // -1 indicates unknown CPU availability
-			memoryAvailability: 0.5,
-			expectedUnhealthy:  false,
-		},
-		{
-			name:               "Unhealthy - unknown cpu, but memory is unhealthy so we report healthy",
-			cpuAvailability:    -1,   // -1 indicates unknown CPU availability
-			memoryAvailability: 0.05, // 5% Memory availability which is below threshold
-			expectedUnhealthy:  true,
-		},
-		{
-			name:               "Healthy - unknown memory availability, 50% cpu availability",
-			memoryAvailability: -1,  // -1 indicates unknown Memory availability
-			cpuAvailability:    0.5, // 50% CPU availability
-			expectedUnhealthy:  false,
-		},
-		{
-			name:               "Unhealthy - unknown memory availability, 5% cpu availability",
-			memoryAvailability: -1,   // -1 indicates unknown Memory availability
-			cpuAvailability:    0.05, // 5% CPU availability
-			expectedUnhealthy:  true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			memHistory = safebuffer.NewSafeBuffer(5)
-			cpuMillicoreHistory = safebuffer.NewSafeBuffer(5)
-
-			ps := &ProcessStats{CPUAvailability: tt.cpuAvailability, MemoryAvailability: tt.memoryAvailability}
-
-			result := ps.IsUnhealthyUsage(context.Background())
-			assert.Equal(t, tt.expectedUnhealthy, result)
-		})
-	}
-}
 
 func TestMemoryAvailability(t *testing.T) {
 	// Save original state
@@ -161,13 +82,13 @@ func TestMemoryAvailability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			memHistory = safebuffer.NewSafeBuffer(len(tt.memHistory))
+			memHistory = safebuffer.New(len(tt.memHistory))
 			for _, mem := range tt.memHistory {
 				memHistory.Add(mem)
 			}
 			maxMemory = tt.maxMemory
 
-			result := memoryAvailability()
+			result := GetMemoryAvailability()
 			assert.Equal(t, tt.expectedAvailability, result, "memoryAvailability() = %v; want %v", result, tt.expectedAvailability)
 		})
 	}
@@ -266,13 +187,13 @@ func TestCPUAvailability(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cpuMillicoreHistory = safebuffer.NewSafeBuffer(len(tt.cpuHistory))
+			cpuMillicoreHistory = safebuffer.New(len(tt.cpuHistory))
 			for _, cpu := range tt.cpuHistory {
 				cpuMillicoreHistory.Add(cpu)
 			}
 			cpuMillicoreLimit = tt.cpuMillicoreLimit
 
-			result := cpuAvailability()
+			result := GetCPUAvailability()
 			assert.Equal(t, tt.expectedAvailability, result, "cpuAvailability() = %v; want %v", result, tt.expectedAvailability)
 		})
 	}
@@ -290,7 +211,7 @@ func TestMemoryAvailabilityEdgeCases(t *testing.T) {
 	}()
 
 	t.Run("empty history - division by zero protection", func(t *testing.T) {
-		memHistory = safebuffer.NewSafeBuffer(5)
+		memHistory = safebuffer.New(5)
 		maxMemory = 10000
 
 		// This will cause division by zero, function should handle it
@@ -305,13 +226,13 @@ func TestMemoryAvailabilityEdgeCases(t *testing.T) {
 	})
 
 	t.Run("negative availability clamped to 0", func(t *testing.T) {
-		memHistory = safebuffer.NewSafeBuffer(3)
+		memHistory = safebuffer.New(3)
 		memHistory.Add(uint64(20000))
 		memHistory.Add(uint64(20000))
 		memHistory.Add(uint64(20000))
 		maxMemory = 10000
 
-		result := memoryAvailability()
+		result := GetMemoryAvailability()
 		if result != 0.0 {
 			t.Errorf("memoryAvailability() = %v; want 0.0 when usage exceeds limit", result)
 		}
@@ -330,7 +251,7 @@ func TestCPUAvailabilityEdgeCases(t *testing.T) {
 	}()
 
 	t.Run("empty history - division by zero protection", func(t *testing.T) {
-		cpuMillicoreHistory = safebuffer.NewSafeBuffer(5)
+		cpuMillicoreHistory = safebuffer.New(5)
 		cpuMillicoreLimit = 1000
 
 		// This will cause division by zero, function should handle it
@@ -345,13 +266,13 @@ func TestCPUAvailabilityEdgeCases(t *testing.T) {
 	})
 
 	t.Run("negative availability clamped to 0", func(t *testing.T) {
-		cpuMillicoreHistory = safebuffer.NewSafeBuffer(3)
+		cpuMillicoreHistory = safebuffer.New(3)
 		cpuMillicoreHistory.Add(2000)
 		cpuMillicoreHistory.Add(2000)
 		cpuMillicoreHistory.Add(2000)
 		cpuMillicoreLimit = 1000
 
-		result := cpuAvailability()
+		result := GetCPUAvailability()
 		if result != 0.0 {
 			t.Errorf("cpuAvailability() = %v; want 0.0 when usage exceeds limit", result)
 		}
@@ -405,12 +326,12 @@ func TestAddMemoryHistory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			memHistory = safebuffer.NewSafeBuffer(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
+			memHistory = safebuffer.New(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
 			for _, mem := range tt.initialHistory {
 				memHistory.Add(mem)
 			}
 
-			addMemoryHistory(tt.memToAdd)
+			memHistory.Add(tt.memToAdd)
 			mhd := memHistory.GetData()
 
 			assert.Equal(t, tt.expectedLength, len(mhd), "history length mismatch")
@@ -478,12 +399,12 @@ func TestAddCPUHistory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cpuMillicoreHistory = safebuffer.NewSafeBuffer(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
+			cpuMillicoreHistory = safebuffer.New(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
 			for _, cpu := range tt.initialHistory {
 				cpuMillicoreHistory.Add(cpu)
 			}
 
-			addCPUHistory(tt.cpuToAdd)
+			cpuMillicoreHistory.Add(tt.cpuToAdd)
 			chd := cpuMillicoreHistory.GetData()
 
 			assert.Equal(t, tt.expectedLength, len(chd), "history length mismatch")
@@ -510,12 +431,12 @@ func TestAddHistorySlidingWindow(t *testing.T) {
 	maxCapacity := int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds())
 
 	t.Run("memory history sliding window removes oldest entry", func(t *testing.T) {
-		memHistory = safebuffer.NewSafeBuffer(maxCapacity)
+		memHistory = safebuffer.New(maxCapacity)
 		for i := 0; i < maxCapacity; i++ {
 			memHistory.Add(uint64((i + 1) * 1000))
 		}
 
-		addMemoryHistory(99999)
+		memHistory.Add(uint64(99999))
 
 		mhd := memHistory.GetData()
 		assert.Equal(t, maxCapacity, len(mhd))
@@ -524,12 +445,12 @@ func TestAddHistorySlidingWindow(t *testing.T) {
 	})
 
 	t.Run("CPU history sliding window removes oldest entry", func(t *testing.T) {
-		cpuMillicoreHistory = safebuffer.NewSafeBuffer(maxCapacity)
+		cpuMillicoreHistory = safebuffer.New(maxCapacity)
 		for i := 0; i < maxCapacity; i++ {
 			cpuMillicoreHistory.Add((i + 1) * 100)
 		}
 
-		addCPUHistory(9999)
+		cpuMillicoreHistory.Add(9999)
 		chd := cpuMillicoreHistory.GetData()
 		assert.Equal(t, maxCapacity, len(chd))
 		assert.Equal(t, 200, chd[0].(int), "oldest entry should be removed")
@@ -537,107 +458,25 @@ func TestAddHistorySlidingWindow(t *testing.T) {
 	})
 }
 
-func TestPeriodicCollectInsertsKnownAvailabilityMetrics(t *testing.T) {
-	// Save original state
-	originalTimeBetweenCollections := TimeBetweenCollections
-	originalMemHistory := memHistory
-	originalCPUHistory := cpuMillicoreHistory
-	originalMaxMemory := maxMemory
-	originalCPULimit := cpuMillicoreLimit
+func TestProcessMonitorNonWindows_CancelsOnContext(t *testing.T) {
+	const procMonitorRunTime = 21 * time.Second
+	const postCancelWaitTime = 20 * time.Second
+	synctest.Test(t, func(_ *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			processMonitorNonWindows(ctx)
+		}()
+		time.Sleep(procMonitorRunTime)
+		synctest.Wait()
+		cancel()
+		time.Sleep(postCancelWaitTime)
+		synctest.Wait()
+	})
 
-	// Restore original state after test
-	defer func() {
-		TimeBetweenCollections = originalTimeBetweenCollections
-		memHistory = originalMemHistory
-		cpuMillicoreHistory = originalCPUHistory
-		maxMemory = originalMaxMemory
-		cpuMillicoreLimit = originalCPULimit
-	}()
-
-	TimeBetweenCollections = 10 * time.Millisecond
-	memHistory = safebuffer.NewSafeBuffer(3)
-	memHistory.Add(uint64(2500))
-	maxMemory = 10000
-
-	cpuMillicoreHistory = safebuffer.NewSafeBuffer(3)
-	cpuMillicoreHistory.Add(500)
-	cpuMillicoreLimit = 1000
-
-	cpuAvailMetric := NewMetric(ServiceCPUAvailableMetricName, []string{SystemLabel})
-	memAvailMetric := NewMetric(ServiceMemoryAvailableMetricName, []string{SystemLabel})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		periodicCollect(ctx, cpuAvailMetric, memAvailMetric)
-	}()
-
-	assert.Eventually(t, func() bool {
-		return len(cpuAvailMetric.getRecords()) > 0 && len(memAvailMetric.getRecords()) > 0
-	}, 300*time.Millisecond, 5*time.Millisecond)
-
-	// CPU availability = 1 - (500/1000) = 0.5, memory availability = 1 - (2500/10000) = 0.75
-	assert.Equal(t, 0.5, cpuAvailMetric.getRecords()[0].value)
-	assert.Equal(t, 0.75, memAvailMetric.getRecords()[0].value)
-
-	cancel()
-	assert.Eventually(t, func() bool {
-		select {
-		case <-done:
-			return true
-		default:
-			return false
-		}
-	}, 200*time.Millisecond, 5*time.Millisecond)
-}
-
-func TestPeriodicCollectSkipsUnknownAvailabilityMetrics(t *testing.T) {
-	// Save original state
-	originalTimeBetweenCollections := TimeBetweenCollections
-	originalMemHistory := memHistory
-	originalCPUHistory := cpuMillicoreHistory
-	originalMaxMemory := maxMemory
-	originalCPULimit := cpuMillicoreLimit
-
-	// Restore original state after test
-	defer func() {
-		TimeBetweenCollections = originalTimeBetweenCollections
-		memHistory = originalMemHistory
-		cpuMillicoreHistory = originalCPUHistory
-		maxMemory = originalMaxMemory
-		cpuMillicoreLimit = originalCPULimit
-	}()
-
-	TimeBetweenCollections = 10 * time.Millisecond
-	memHistory = safebuffer.NewSafeBuffer(3)
-	cpuMillicoreHistory = safebuffer.NewSafeBuffer(3)
-	maxMemory = 0
-	cpuMillicoreLimit = 0
-
-	cpuAvailMetric := NewMetric(ServiceCPUAvailableMetricName, []string{SystemLabel})
-	memAvailMetric := NewMetric(ServiceMemoryAvailableMetricName, []string{SystemLabel})
-
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		periodicCollect(ctx, cpuAvailMetric, memAvailMetric)
-	}()
-
-	// Allow at least one collection cycle after the initial wait.
-	time.Sleep(35 * time.Millisecond)
-
-	cancel()
-	assert.Eventually(t, func() bool {
-		select {
-		case <-done:
-			return true
-		default:
-			return false
-		}
-	}, 200*time.Millisecond, 5*time.Millisecond)
-
-	assert.Len(t, cpuAvailMetric.getRecords(), 0)
-	assert.Len(t, memAvailMetric.getRecords(), 0)
+	expectedCPUCollections := int(procMonitorRunTime / procStatsCollectionFrequency)
+	assert.Equal(t, expectedCPUCollections, len(cpuMillicoreHistory.GetData()))
+	// We should have one more memory collection than CPU collection since we collect
+	// memory on the first run before we have enough data to calculate CPU usage
+	expectedMemoryCollections := expectedCPUCollections + 1
+	assert.Equal(t, expectedMemoryCollections, len(memHistory.GetData()))
 }

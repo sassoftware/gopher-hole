@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sassoftware/gopher-hole/safebuffer"
+	"github.com/sassoftware/gopher-hole/util/math"
+	"github.com/sassoftware/gopher-hole/util/safebuffer"
 )
 
 var (
@@ -13,10 +14,6 @@ var (
 )
 
 const (
-	SystemLabel   = "system"
-	EventLabel    = "event"
-	ConsumerLabel = "consumer"
-
 	recordCapacity                = 50
 	minRecordsForTrendCalculation = 5
 )
@@ -32,16 +29,11 @@ type record struct {
 	timestamp time.Time
 }
 
-type dataPoint struct {
-	x float64
-	y float64
-}
-
 // NewMetric initializes a new Metric struct.
 func NewMetric(name string, labels []string) *Metric {
 	return &Metric{
 		name:    name,
-		records: safebuffer.NewSafeBuffer(recordCapacity),
+		records: safebuffer.New(recordCapacity),
 		labels:  labels,
 	}
 }
@@ -115,46 +107,17 @@ func (m *Metric) Trend(duration time.Duration) (float64, error) {
 	if len(filteredDataPoints) < minRecordsForTrendCalculation {
 		return 0.0, fmt.Errorf("not enough records found within the given timeframe to accurately calculate trend")
 	}
-	return calculateLinearRegressionSlope(filteredDataPoints)
+	return math.CalculateLinearRegressionSlope(filteredDataPoints)
 }
 
-func convertRecordsToDataPoints(records []record) []dataPoint {
-	var filteredDataPoints []dataPoint
+func convertRecordsToDataPoints(records []record) []math.DataPoint {
+	var filteredDataPoints []math.DataPoint
 	for _, r := range records {
 		secondsSinceFirstRecord := r.timestamp.Sub(records[0].timestamp).Seconds()
-		filteredDataPoints = append(filteredDataPoints, dataPoint{
-			x: secondsSinceFirstRecord,
-			y: r.value,
+		filteredDataPoints = append(filteredDataPoints, math.DataPoint{
+			X: secondsSinceFirstRecord,
+			Y: r.value,
 		})
 	}
 	return filteredDataPoints
-}
-
-func calculateLinearRegressionSlope(dataPoints []dataPoint) (float64, error) {
-	if len(dataPoints) < 2 {
-		return 0.0, fmt.Errorf("not enough data points to calculate trend")
-	}
-
-	// Perform linear regression to find the slope
-	var sumX, sumY, sumXY, sumX2 float64
-	n := float64(len(dataPoints))
-
-	for _, point := range dataPoints {
-		x := point.x
-		y := point.y
-		sumX += x
-		sumY += y
-		sumXY += x * y
-		sumX2 += x * x
-	}
-
-	numerator := n*sumXY - sumX*sumY
-	denominator := n*sumX2 - sumX*sumX
-
-	if denominator == 0 {
-		return 0.0, fmt.Errorf("denominator is zero, cannot calculate slope")
-	}
-
-	slope := numerator / denominator
-	return slope, nil
 }

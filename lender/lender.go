@@ -11,13 +11,7 @@ import (
 	"time"
 
 	"github.com/sassoftware/gopher-hole/internal/log"
-	"github.com/sassoftware/gopher-hole/key"
 	"github.com/sassoftware/gopher-hole/metrics"
-)
-
-var (
-	// LenderKey is the plugin key for the lender.
-	LenderKey = key.Key{Name: "gopher-hole/lender"}
 )
 
 const (
@@ -68,7 +62,7 @@ type lendeeRecord struct {
 // where the outer key represents lendee categories and the inner key represents
 // specific lendee identifiers.
 type Lender struct {
-	ctx                *context.Context
+	ctx                context.Context
 	lendees            map[string]map[string]*lendeeRecord
 	lendeesMu          sync.Mutex
 	metricsMgr         *metrics.Manager
@@ -89,18 +83,15 @@ type Lender struct {
 // Returns:
 //   - *Lender: A pointer to the newly created Lender instance
 //   - error: An error if the metrics manager cannot be retrieved from the context
-func NewLender(ctx *context.Context) (*Lender, error) {
-	metricsManager, err := metrics.GetManagerFromContext(*ctx)
-	fmt.Println("metricsManager:", metricsManager)
-	if err != nil {
-		logger.Debug().Msgf("Lender failed to get metrics manager from context: %v", err)
-		return nil, err
+func NewLender(ctx context.Context, mgr *metrics.Manager) (*Lender, error) {
+	if mgr == nil {
+		return nil, fmt.Errorf("metrics manager is nil")
 	}
 
 	return &Lender{
 		ctx:                ctx,
 		lendees:            make(map[string]map[string]*lendeeRecord),
-		metricsMgr:         metricsManager,
+		metricsMgr:         mgr,
 		scaleUpThreshold:   getScaleUpThreshold(),
 		scaleDownThreshold: getScaleDownThreshold(),
 		interval:           getInterval(),
@@ -258,7 +249,7 @@ func (l *Lender) removeCredit(lr *lendeeRecord) error {
 	// with a default credit, we don't want to take any of those away.
 	if lr.creditsGiven > 0 {
 		lr.creditsGiven--
-		err := lr.lendee.RemoveCredit(*l.ctx)
+		err := lr.lendee.RemoveCredit(l.ctx)
 		if err != nil {
 			logger.Debug().Msgf("Failed to remove credit from lendee '%s': %v (creditsGiven=%d)", lr.lendee.GetName(), err, lr.creditsGiven)
 		} else {
@@ -290,7 +281,7 @@ func (l *Lender) watchMetrics() { //nolint:gocognit
 	for {
 		// Wait for tick or context cancellation
 		select {
-		case <-(*l.ctx).Done():
+		case <-l.ctx.Done():
 			return
 		case <-ticker.C:
 			// Continue to processing
@@ -320,7 +311,7 @@ func (l *Lender) watchMetrics() { //nolint:gocognit
 			for _, record := range group {
 				// Check for cancellation before processing each record
 				select {
-				case <-(*l.ctx).Done():
+				case <-l.ctx.Done():
 					return
 				default:
 				}

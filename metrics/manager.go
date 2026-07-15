@@ -1,19 +1,10 @@
 package metrics
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"maps"
 	"slices"
 	"sync"
-
-	"github.com/sassoftware/gopher-hole/key"
-)
-
-var (
-	// ManagerKey is the plugin key for the metrics manager.
-	ManagerKey = key.Key{Name: "gopher-hole/metrics/manager"}
 )
 
 type Manager struct {
@@ -82,18 +73,4 @@ func (mgr *Manager) GetMetric(name string) (*Metric, error) {
 		return nil, fmt.Errorf("metric %s not found", name)
 	}
 	return metric, nil
-}
-
-// NewManagerContext adds the metrics.Manager to the existing context
-func NewManagerContext(ctx context.Context, mgr *Manager) context.Context {
-	return context.WithValue(ctx, ManagerKey, mgr)
-}
-
-// GetManagerFromContext retrieves the metrics.Manager from the context
-func GetManagerFromContext(ctx context.Context) (*Manager, error) {
-	mgr, ok := ctx.Value(ManagerKey).(*Manager)
-	if !ok {
-		return nil, errors.New("metrics manager not found in context")
-	}
-	return mgr, nil
 }

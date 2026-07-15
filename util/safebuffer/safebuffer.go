@@ -11,8 +11,8 @@ type SafeBuffer struct {
 	mutex  sync.Mutex
 }
 
-// NewSafeBuffer initializes a new SafeBuffer with the specified size.
-func NewSafeBuffer(size int) *SafeBuffer {
+// New initializes a new SafeBuffer with the specified size.
+func New(size int) *SafeBuffer {
 	return &SafeBuffer{
 		buffer: ring.New(size),
 		mutex:  sync.Mutex{},
@@ -20,28 +20,28 @@ func NewSafeBuffer(size int) *SafeBuffer {
 }
 
 // Add inserts a new value into the SafeBuffer in a thread-safe manner.
-func (sr *SafeBuffer) Add(val interface{}) {
-	sr.mutex.Lock()
-	defer sr.mutex.Unlock()
-	sr.buffer.Value = val
-	sr.buffer = sr.buffer.Next()
+func (sb *SafeBuffer) Add(val interface{}) {
+	sb.mutex.Lock()
+	defer sb.mutex.Unlock()
+	sb.buffer.Value = val
+	sb.buffer = sb.buffer.Next()
 }
 
 // GetMostRecent retrieves the most recently added entry from the SafeBuffer in a thread-safe manner.
-func (sr *SafeBuffer) GetMostRecent() any {
-	sr.mutex.Lock()
-	defer sr.mutex.Unlock()
+func (sb *SafeBuffer) GetMostRecent() any {
+	sb.mutex.Lock()
+	defer sb.mutex.Unlock()
 	// The last added element is the one before the current position
-	last := sr.buffer.Prev()
+	last := sb.buffer.Prev()
 	return last.Value
 }
 
 // GetData retrieves all non-nil entries from the SafeBuffer in a thread-safe manner.
-func (sr *SafeBuffer) GetData() []any {
-	sr.mutex.Lock()
-	defer sr.mutex.Unlock()
+func (sb *SafeBuffer) GetData() []any {
+	sb.mutex.Lock()
+	defer sb.mutex.Unlock()
 	var dataSlice []any
-	sr.buffer.Do(func(entry any) {
+	sb.buffer.Do(func(entry any) {
 		if entry != nil {
 			dataSlice = append(dataSlice, entry)
 		}

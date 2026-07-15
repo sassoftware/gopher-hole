@@ -7,7 +7,7 @@ import (
 )
 
 func Test_SafeBuffer(t *testing.T) {
-	sample := NewSafeBuffer(3)
+	sample := New(3)
 
 	// Initially, the ring should be empty (all values nil)
 	actual := sample.GetData()
