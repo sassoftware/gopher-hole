@@ -10,6 +10,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sassoftware/gopher-hole/metrics"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const testGroup = "testGroup"
@@ -681,24 +682,32 @@ func TestNewLender_EnvironmentVariables(t *testing.T) {
 	// Cleanup function to restore original values
 	defer func() {
 		if originalScaleUp != "" {
-			os.Setenv(scaleUpEnvVar, originalScaleUp)
+			err := os.Setenv(scaleUpEnvVar, originalScaleUp)
+			require.NoError(t, err)
 		} else {
-			os.Unsetenv(scaleUpEnvVar)
+			err := os.Unsetenv(scaleUpEnvVar)
+			require.NoError(t, err)
 		}
 		if originalScaleDown != "" {
-			os.Setenv(scaleDownEnvVar, originalScaleDown)
+			err := os.Setenv(scaleDownEnvVar, originalScaleDown)
+			require.NoError(t, err)
 		} else {
-			os.Unsetenv(scaleDownEnvVar)
+			err := os.Unsetenv(scaleDownEnvVar)
+			require.NoError(t, err)
 		}
 		if originalInterval != "" {
-			os.Setenv(intervalEnvVar, originalInterval)
+			err := os.Setenv(intervalEnvVar, originalInterval)
+			require.NoError(t, err)
 		} else {
-			os.Unsetenv(intervalEnvVar)
+			err := os.Unsetenv(intervalEnvVar)
+			require.NoError(t, err)
 		}
 		if originalMaxCredits != "" {
-			os.Setenv(maxCreditsPerCycleEnvVar, originalMaxCredits)
+			err := os.Setenv(maxCreditsPerCycleEnvVar, originalMaxCredits)
+			require.NoError(t, err)
 		} else {
-			os.Unsetenv(maxCreditsPerCycleEnvVar)
+			err := os.Unsetenv(maxCreditsPerCycleEnvVar)
+			require.NoError(t, err)
 		}
 	}()
 
@@ -754,14 +763,19 @@ func TestNewLender_EnvironmentVariables(t *testing.T) {
 	for testName, tc := range tests {
 		t.Run(testName, func(t *testing.T) {
 			// Clear all relevant environment variables first
-			os.Unsetenv(scaleUpEnvVar)
-			os.Unsetenv(scaleDownEnvVar)
-			os.Unsetenv(intervalEnvVar)
-			os.Unsetenv(maxCreditsPerCycleEnvVar)
+			err := os.Unsetenv(scaleUpEnvVar)
+			require.NoError(t, err)
+			err = os.Unsetenv(scaleDownEnvVar)
+			require.NoError(t, err)
+			err = os.Unsetenv(intervalEnvVar)
+			require.NoError(t, err)
+			err = os.Unsetenv(maxCreditsPerCycleEnvVar)
+			require.NoError(t, err)
 
 			// Set test environment variables
 			for key, value := range tc.envVars {
-				os.Setenv(key, value)
+				err := os.Setenv(key, value)
+				require.NoError(t, err)
 			}
 
 			// Setup context and metrics manager
@@ -787,14 +801,17 @@ func TestLender_watchMetrics_MaxCreditsConfiguration(t *testing.T) {
 	originalMaxCredits := os.Getenv(maxCreditsPerCycleEnvVar)
 	defer func() {
 		if originalMaxCredits != "" {
-			os.Setenv(maxCreditsPerCycleEnvVar, originalMaxCredits)
+			err := os.Setenv(maxCreditsPerCycleEnvVar, originalMaxCredits)
+			require.NoError(t, err)
 		} else {
-			os.Unsetenv(maxCreditsPerCycleEnvVar)
+			err := os.Unsetenv(maxCreditsPerCycleEnvVar)
+			require.NoError(t, err)
 		}
 	}()
 
 	// Set custom max credits value
-	os.Setenv(maxCreditsPerCycleEnvVar, "3")
+	err := os.Setenv(maxCreditsPerCycleEnvVar, "3")
+	require.NoError(t, err)
 
 	// Setup context with cancellation
 	ctx, cancel := context.WithCancel(context.Background())
@@ -815,7 +832,7 @@ func TestLender_watchMetrics_MaxCreditsConfiguration(t *testing.T) {
 	// Create multiple lendees with different AI models that have high predictions
 	// to test that only maxCreditsPerCycle (3) lendees get credits
 	mockLendees := make([]*MockLendee, 5)
-	for i := 0; i < 5; i++ {
+	for i := range mockLendees {
 		mockModel := &MockAIModel{
 			metricsList: []*metrics.Metric{metric1},
 			prediction:  0.9, // High prediction to trigger credit addition

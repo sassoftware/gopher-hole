@@ -240,12 +240,12 @@ func Test_convertRecordsToDataPoints(t *testing.T) {
 		"all points": {
 			records: getDefaultTestRecords(),
 			expected: []math.DataPoint{
-				{0.0, 10.0},
-				{1.0, 12.0},
-				{2.0, 11.0},
-				{3.0, 13.0},
-				{4.0, 15.0},
-				{5.0, 16.0},
+				{X: 0.0, Y: 10.0},
+				{X: 1.0, Y: 12.0},
+				{X: 2.0, Y: 11.0},
+				{X: 3.0, Y: 13.0},
+				{X: 4.0, Y: 15.0},
+				{X: 5.0, Y: 16.0},
 			},
 		},
 	}
