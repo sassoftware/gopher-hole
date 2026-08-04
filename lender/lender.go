@@ -20,10 +20,10 @@ const (
 	intervalDefault           = 1 * time.Minute
 	maxCreditsPerCycleDefault = 5
 
-	scaleUpEnvVar            = "SAS_EVENT_ELASTIC_SCALE_UP"
-	scaleDownEnvVar          = "SAS_EVENT_ELASTIC_SCALE_DOWN"
-	intervalEnvVar           = "SAS_EVENT_ELASTIC_INTERVAL"
-	maxCreditsPerCycleEnvVar = "SAS_EVENT_ELASTIC_MAX_CREDITS_PER_CYCLE" //nolint:gosec
+	scaleUpEnvVar            = "LENDER_SCALE_UP"
+	scaleDownEnvVar          = "LENDER_SCALE_DOWN"
+	intervalEnvVar           = "LENDER_INTERVAL"
+	maxCreditsPerCycleEnvVar = "LENDER_MAX_CREDITS_PER_CYCLE" //nolint:gosec
 )
 
 // A CreditBorrower can acquire credits for processing and return them once completed

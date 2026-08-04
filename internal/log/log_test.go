@@ -27,9 +27,7 @@ func TestGetLogger_IsZerologLogger(t *testing.T) {
 }
 
 func TestInit_DefaultLevelIsInfo(t *testing.T) {
-	err := os.Unsetenv(sasLogLevelEnvVar)
-	require.NoError(t, err)
-	err = os.Unsetenv(logLevelEnvVar)
+	err := os.Unsetenv(logLevelEnvVar)
 	require.NoError(t, err)
 
 	// Re-initialize by calling init directly via reinit helper
@@ -38,23 +36,8 @@ func TestInit_DefaultLevelIsInfo(t *testing.T) {
 	assert.Equal(t, zerolog.InfoLevel, GetLogger().GetLevel())
 }
 
-func TestInit_SasLogLevelEnvVar(t *testing.T) {
-	err := os.Setenv(sasLogLevelEnvVar, "debug")
-	require.NoError(t, err)
-	defer func() {
-		err := os.Unsetenv(sasLogLevelEnvVar)
-		require.NoError(t, err)
-	}()
-
-	initLogger()
-
-	assert.Equal(t, zerolog.DebugLevel, GetLogger().GetLevel())
-}
-
 func TestInit_LogLevelEnvVar(t *testing.T) {
-	err := os.Unsetenv(sasLogLevelEnvVar)
-	require.NoError(t, err)
-	err = os.Setenv(logLevelEnvVar, "warn")
+	err := os.Setenv(logLevelEnvVar, "warn")
 	require.NoError(t, err)
 	defer func() {
 		err := os.Unsetenv(logLevelEnvVar)
@@ -66,22 +49,13 @@ func TestInit_LogLevelEnvVar(t *testing.T) {
 	assert.Equal(t, zerolog.WarnLevel, GetLogger().GetLevel())
 }
 
-func TestInit_SasLogLevelTakesPrecedenceOverLogLevel(t *testing.T) {
-	err := os.Setenv(sasLogLevelEnvVar, "error")
-	require.NoError(t, err)
-	err = os.Setenv(logLevelEnvVar, "debug")
-	require.NoError(t, err)
-
-	initLogger()
-
-	assert.Equal(t, zerolog.ErrorLevel, GetLogger().GetLevel())
-}
-
 func TestInit_InvalidLevelFallsBackToInfo(t *testing.T) {
-	err := os.Setenv(sasLogLevelEnvVar, "notvalid")
+	err := os.Setenv(logLevelEnvVar, "notvalid")
 	require.NoError(t, err)
-	err = os.Unsetenv(logLevelEnvVar)
-	require.NoError(t, err)
+	defer func() {
+		err := os.Unsetenv(logLevelEnvVar)
+		require.NoError(t, err)
+	}()
 
 	initLogger()
 

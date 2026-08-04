@@ -33,11 +33,3 @@ regex = '''(?:\W*wget [^&;|\r\n]+)(?:-password\s*)(?:=|\s)([^$"][^"\p{Z}\v]+|"[^
 keywords = [
     "wget",
 ]
-
-[[rules]]
-id = "sas-pwencode"
-description = "Detected use of SAS PROC PWENCODE passwords."
-regex = '''({(?:(?:SAS|sas)(?:001|002|003|004|005|ENC))}[a-zA-Z0-9=+/]{5,})'''
-keywords = [
-    "SAS",
-]

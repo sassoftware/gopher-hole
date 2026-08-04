@@ -36,20 +36,20 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       # https://github.com/actions/setup-go
       - name: Setup go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
 
       # https://github.com/marketplace/actions/markdown-linting-action
       - name: Lint markdown files
         id: lint-markdown
-        uses: avto-dev/markdown-lint@04d43ee9191307b50935a753da3b775ab695eceb
+        uses: avto-dev/markdown-lint@v1
         if: always()
         with:
           args: ./
@@ -60,7 +60,7 @@ jobs:
       - name: Lint shell scripts
         id: lint-shell
         if: always()
-        uses: ludeeus/action-shellcheck@00b27aa7cb85167568cb48a3838b75f4265f2bca
+        uses: ludeeus/action-shellcheck@2.0.0
 
       # yamllint does not exist in the act image so skip it if we're in act
       - name: Run yamllint
@@ -70,7 +70,7 @@ jobs:
   betterleaks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -103,18 +103,18 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       # https://github.com/actions/setup-go
       - name: Setup go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@82606bf257cbaff209d206a39f5134f0cfbfd2ee
+        uses: golangci/golangci-lint-action@v9
         with:
           version: v2.11
           args: --config=${{ env.LINT_DIR }}/golangci-config.yaml --allow-parallel-runners
@@ -136,7 +136,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -145,7 +145,7 @@ jobs:
 
       # https://github.com/actions/setup-go
       - name: Setup go
-        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GO_VERSION }}
 

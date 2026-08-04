@@ -13,8 +13,7 @@ var (
 )
 
 const (
-	sasLogLevelEnvVar = "SAS_LOG_LEVEL"
-	logLevelEnvVar    = "LOG_LEVEL"
+	logLevelEnvVar = "LOG_LEVEL"
 )
 
 func init() {
@@ -26,11 +25,7 @@ func initLogger() {
 	zerolog.TimestampFieldName = "timeStamp"
 
 	level := zerolog.InfoLevel
-	if envLevel, ok := os.LookupEnv(sasLogLevelEnvVar); ok {
-		if parsedLevel, err := zerolog.ParseLevel(envLevel); err == nil {
-			level = parsedLevel
-		}
-	} else if envLevel, ok := os.LookupEnv(logLevelEnvVar); ok {
+	if envLevel, ok := os.LookupEnv(logLevelEnvVar); ok {
 		if parsedLevel, err := zerolog.ParseLevel(envLevel); err == nil {
 			level = parsedLevel
 		}
