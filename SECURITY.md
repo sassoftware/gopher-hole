@@ -1,4 +1,4 @@
-# Arke Security Policy
+# Gopher Hole Security Policy
 
 Project maintainers and community contributors take security issues seriously.
 Efforts to disclose potential issues responsibly are appreciated, and viable
