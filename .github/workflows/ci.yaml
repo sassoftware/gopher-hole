@@ -1,0 +1,186 @@
+---
+name: ci
+on:
+  push:
+    branches:
+      - main
+      - release-*
+
+  workflow_dispatch:
+
+  pull_request:
+    types:
+      # Default PR events + ready_for_review
+      # so checks run when PR is pulled out of draft
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+    branches:
+      - main
+      - release-*
+env:
+  GO_VERSION: 1.26
+  ARTIFACT_DIR: ./artifacts
+  LINT_DIR: ./.github/linters
+  COV_DIR: ./artifacts/cov
+  BETTERLEAKS_VERSION: 1.6.0
+
+jobs:
+  lint-other-files:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # https://github.com/actions/setup-go
+      - name: Setup go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # https://github.com/marketplace/actions/markdown-linting-action
+      - name: Lint markdown files
+        id: lint-markdown
+        uses: avto-dev/markdown-lint@v1
+        if: always()
+        with:
+          args: ./
+          config: ${{ env.LINT_DIR }}/markdown-lint.yml
+
+      # https://github.com/marketplace/actions/shellcheck
+      # Note: only checks for syntax errors, not style issues
+      - name: Lint shell scripts
+        id: lint-shell
+        if: always()
+        uses: ludeeus/action-shellcheck@2.0.0
+
+      # yamllint does not exist in the act image so skip it if we're in act
+      - name: Run yamllint
+        if: ${{ !env.ACT }}
+        run: |
+          yamllint -c .github/linters/yamllint.yml .
+  betterleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: dortort/betterleaks-action@v0.1.0
+        id: betterleaks
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          config: ./.github/linters/betterleaks-config.toml
+          verbose: true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: betterleaks-report
+          path: ${{ steps.betterleaks.outputs.report-path }}
+
+  go-lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+    env:
+      GOMEMLIMIT: 2GiB
+
+    services:
+      docker:
+        image: docker:dind # Use the official Docker-in-Docker image
+        options: --privileged --shm-size=2g # The --privileged flag is required for DinD to function
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # https://github.com/actions/setup-go
+      - name: Setup go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11
+          args: --config=${{ env.LINT_DIR }}/golangci-config.yaml --allow-parallel-runners
+
+  go-test:
+    runs-on: ubuntu-latest
+    # https://hub.docker.com/_/golang/
+    permissions:
+      contents: write
+      id-token: write
+      pull-requests: read
+    env:
+      GOMEMLIMIT: 2GiB
+
+    services:
+      docker:
+        image: docker:dind # Use the official Docker-in-Docker image
+        options: --privileged --shm-size=2g # The --privileged flag is required for DinD to function
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Create artifact directory
+        run: mkdir -p ${{ env.ARTIFACT_DIR}}
+
+      # https://github.com/actions/setup-go
+      - name: Setup go
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      # https://github.com/golang/govulncheck-action
+      # the results
+      - name: Run govulncheck
+        if: always()
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+      # Run unit tests with coverage
+      - name: Unit tests
+        if: always()
+        run: |
+          mkdir -p ${{ env.COV_DIR }}
+          # Note that cov dir has to be absolute path since each package test runs from the pkg directory
+          # disable -race  for now, entered #11 to fix this
+          go test -count=1 -v -coverpkg=./... ./... -args -test.gocoverdir=$PWD/${{ env.COV_DIR }}
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          go tool covdata textfmt -i=${{ env.COV_DIR }} -o=${{ env.ARTIFACT_DIR }}/coverage.out
+
+      # Display coverage summary
+      - name: Display coverage summary
+        if: always()
+        run: |
+          go tool covdata percent -i=${{ env.COV_DIR }}
+
+      # https://github.com/vladopajic/go-test-coverage/blob/main/README.md#configuration
+      - name: Check test coverage
+        if: always()
+        id: check-coverage
+        run: |-
+          go install github.com/vladopajic/go-test-coverage/v2@latest
+          go-test-coverage --config=${{ env.LINT_DIR }}/testcoverage.yml

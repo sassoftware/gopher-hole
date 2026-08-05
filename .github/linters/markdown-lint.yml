@@ -1,0 +1,8 @@
+---
+default: true
+no-multiple-blanks: false
+first-line-heading: true
+line-length:
+  code-blocks: false
+  tables: false
+MD059: false

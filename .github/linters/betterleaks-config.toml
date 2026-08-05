@@ -1,0 +1,35 @@
+title = "betterleaks config extensions"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "generic-api-key"
+
+[[rules.allowlists]]
+# allow UUID values
+regexTarget = "secret"
+regexes = ['''[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}''']
+
+[[rules.allowlists]]
+# allowlist of property names that are known to not be API keys
+regexTarget = "match"
+regexes = [
+    '''(?i)contentKey''',
+]
+
+[[rules]]
+id = "curl-password"
+description = "Detected use of curl with password."
+regex = '''(?:\W*curl [^&;|\r\n]*)(?:--user\s*|-u\s*)(?:\S+)(?::)([^$"][^"\p{Z}\v]+|"[^$][^\p{Z}\v]+")(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+keywords = [
+    "curl",
+]
+
+[[rules]]
+id = "wget-password"
+description = "Detected use of wget with password."
+regex = '''(?:\W*wget [^&;|\r\n]+)(?:-password\s*)(?:=|\s)([^$"][^"\p{Z}\v]+|"[^$][^\p{Z}\v]+")(?:['|\"|\n|\r|\s|\x60|;]|$)'''
+keywords = [
+    "wget",
+]
