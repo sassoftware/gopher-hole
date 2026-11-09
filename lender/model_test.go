@@ -26,14 +26,14 @@ func TestBaseModel_ListMetrics(t *testing.T) {
 			expected: 0,
 		},
 		"single metric": {
-			metrics:  []*metrics.Metric{metrics.NewMetric("cpu", []string{"server"})},
+			metrics:  []*metrics.Metric{metrics.NewMetric("cpu", []string{serverLabel})},
 			expected: 1,
 		},
 		"multiple metrics": {
 			metrics: []*metrics.Metric{
-				metrics.NewMetric("cpu", []string{"server"}),
-				metrics.NewMetric("memory", []string{"server"}),
-				metrics.NewMetric("disk", []string{"server"}),
+				metrics.NewMetric("cpu", []string{serverLabel}),
+				metrics.NewMetric("memory", []string{serverLabel}),
+				metrics.NewMetric("disk", []string{serverLabel}),
 			},
 			expected: 3,
 		},

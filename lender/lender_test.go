@@ -13,7 +13,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const testGroup = "testGroup"
+const (
+	testGroup      = "testGroup"
+	serverLabel    = "server"
+	invalid        = "invalid"
+	mockLendeeName = "mockLendee"
+)
 
 // MockLendee implements the Lendee interface for testing
 type MockLendee struct {
@@ -284,8 +289,8 @@ func TestLender_Start(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request
-	metric1 := metrics.NewMetric("cpu_usage", []string{"server"})
-	metric2 := metrics.NewMetric("memory_usage", []string{"server"})
+	metric1 := metrics.NewMetric("cpu_usage", []string{serverLabel})
+	metric2 := metrics.NewMetric("memory_usage", []string{serverLabel})
 
 	// Register the metrics in the manager so they exist
 	err = mgr.Register(metric1)
@@ -333,7 +338,7 @@ func TestLender_Start_MissingMetrics(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request but don't register them
-	metric1 := metrics.NewMetric("nonexistent_metric", []string{"server"})
+	metric1 := metrics.NewMetric("nonexistent_metric", []string{serverLabel})
 
 	// Create a mock AI model that requests these metrics
 	mockModel := &MockAIModel{
@@ -374,7 +379,7 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 		"scale up high prediction": {
 			name: "lendees with high predictions get credits",
 			setupLendees: func(lender *Lender, mgr *metrics.Manager) []*MockLendee {
-				metric := metrics.NewMetric("cpu_usage", []string{"server"})
+				metric := metrics.NewMetric("cpu_usage", []string{serverLabel})
 				err := mgr.Register(metric)
 				assert.NoError(t, err)
 
@@ -410,7 +415,7 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 		"scale down low prediction": {
 			name: "lendees with low predictions lose credits",
 			setupLendees: func(lender *Lender, mgr *metrics.Manager) []*MockLendee {
-				metric := metrics.NewMetric("memory_usage", []string{"server"})
+				metric := metrics.NewMetric("memory_usage", []string{serverLabel})
 				err := mgr.Register(metric)
 				assert.NoError(t, err)
 
@@ -449,7 +454,7 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 		"mixed predictions": {
 			name: "mix of high and low predictions",
 			setupLendees: func(lender *Lender, mgr *metrics.Manager) []*MockLendee {
-				metric := metrics.NewMetric("cpu_memory", []string{"server"})
+				metric := metrics.NewMetric("cpu_memory", []string{serverLabel})
 				err := mgr.Register(metric)
 				assert.NoError(t, err)
 
@@ -506,7 +511,7 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 		"max credits per cycle limit": {
 			name: "respect max credits per cycle limit",
 			setupLendees: func(lender *Lender, mgr *metrics.Manager) []*MockLendee {
-				metric := metrics.NewMetric("network_io", []string{"server"})
+				metric := metrics.NewMetric("network_io", []string{serverLabel})
 				err := mgr.Register(metric)
 				assert.NoError(t, err)
 
@@ -542,7 +547,7 @@ func TestLender_watchMetrics(t *testing.T) { //nolint:gocognit
 		"context cancellation": {
 			name: "proper context cancellation handling",
 			setupLendees: func(lender *Lender, mgr *metrics.Manager) []*MockLendee {
-				metric := metrics.NewMetric("disk_io", []string{"server"})
+				metric := metrics.NewMetric("disk_io", []string{serverLabel})
 				err := mgr.Register(metric)
 				assert.NoError(t, err)
 
@@ -644,7 +649,7 @@ func TestLender_watchMetrics_MissingMetrics(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Create mock metrics that the AI model will request but don't register them
-	metric1 := metrics.NewMetric("nonexistent_metric", []string{"server"})
+	metric1 := metrics.NewMetric("nonexistent_metric", []string{serverLabel})
 
 	// Create a mock AI model that requests these metrics
 	mockModel := &MockAIModel{
@@ -748,10 +753,10 @@ func TestNewLender_EnvironmentVariables(t *testing.T) {
 		},
 		"invalid values fall back to defaults": {
 			envVars: map[string]string{
-				scaleUpEnvVar:            "invalid",
-				scaleDownEnvVar:          "invalid",
-				intervalEnvVar:           "invalid",
-				maxCreditsPerCycleEnvVar: "invalid",
+				scaleUpEnvVar:            invalid,
+				scaleDownEnvVar:          invalid,
+				intervalEnvVar:           invalid,
+				maxCreditsPerCycleEnvVar: invalid,
 			},
 			expectedScaleUp:    ScaleUpThresholdDefault,
 			expectedScaleDown:  scaleDownThresholdDefault,
@@ -825,7 +830,7 @@ func TestLender_watchMetrics_MaxCreditsConfiguration(t *testing.T) {
 	assert.Equal(t, 3, lender.maxCreditsPerCycle)
 
 	// Create mock metrics that the AI model will request
-	metric1 := metrics.NewMetric("cpu_usage", []string{"server"})
+	metric1 := metrics.NewMetric("cpu_usage", []string{serverLabel})
 	err = mgr.Register(metric1)
 	assert.NoError(t, err)
 
@@ -880,7 +885,7 @@ func TestLender_addCredit(t *testing.T) {
 			name: "add credit when under max",
 			setupRecord: func() *lendeeRecord {
 				mockLendee := &MockLendee{
-					name:         "mockLendee",
+					name:         mockLendeeName,
 					maxCredits:   5,
 					creditsAdded: 2,
 				}
@@ -898,7 +903,7 @@ func TestLender_addCredit(t *testing.T) {
 			name: "add credit when at max limit",
 			setupRecord: func() *lendeeRecord {
 				mockLendee := &MockLendee{
-					name:         "mockLendee",
+					name:         mockLendeeName,
 					maxCredits:   3,
 					creditsAdded: 3,
 				}
@@ -917,7 +922,7 @@ func TestLender_addCredit(t *testing.T) {
 			name: "lendee returns error on AddCredit",
 			setupRecord: func() *lendeeRecord {
 				mockLendee := &MockLendee{
-					name:         "mockLendee",
+					name:         mockLendeeName,
 					maxCredits:   5,
 					creditsAdded: 1,
 					addCreditErr: fmt.Errorf("mock add credit error"),
@@ -937,7 +942,7 @@ func TestLender_addCredit(t *testing.T) {
 			name: "add first credit",
 			setupRecord: func() *lendeeRecord {
 				mockLendee := &MockLendee{
-					name:         "mockLendee",
+					name:         mockLendeeName,
 					maxCredits:   2,
 					creditsAdded: 0,
 				}
@@ -1088,7 +1093,7 @@ func TestLender_addCredit_removeCredit_Integration(t *testing.T) {
 
 	// Create a mock lendee with a max of 3 credits
 	mockLendee := &MockLendee{
-		name:         "mockLendee",
+		name:         mockLendeeName,
 		maxCredits:   3,
 		creditsAdded: 0,
 	}

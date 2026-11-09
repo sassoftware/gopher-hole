@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"time"
 
 	"github.com/sassoftware/gopher-hole/metrics"
@@ -19,6 +19,7 @@ const (
 	// Sigmoid saturation constants - prevent extreme values that cause saturation
 	sigmoidSaturationHigh = 500.0  // Upper bound for sigmoid input to prevent saturation at 1
 	sigmoidSaturationLow  = -500.0 // Lower bound for sigmoid input to prevent saturation at 0
+	sigmoidActivation     = "sigmoid"
 
 	// Training regularization parameters
 	defaultLearningRateDecay = 0.999  // Learning rate decay per epoch
@@ -297,7 +298,7 @@ func (nn *ShallowNeuralNetwork) Train(samples []TrainingSample, epochs int, lear
 		// Shuffle samples each epoch for better convergence
 		shuffled := make([]TrainingSample, len(samples))
 		copy(shuffled, samples)
-		rand.Shuffle(len(shuffled), func(i, j int) {
+		rand.Shuffle(len(shuffled), func(i, j int) { //nolint:gosec // using math/rand for shuffling is acceptable here
 			shuffled[i], shuffled[j] = shuffled[j], shuffled[i]
 		})
 
@@ -460,10 +461,10 @@ func (nn *ShallowNeuralNetwork) Import(data []byte) error {
 	}
 
 	// Validate activation functions if specified (Java models may include these)
-	if imported.HiddenActivation != "" && imported.HiddenActivation != "sigmoid" {
+	if imported.HiddenActivation != "" && imported.HiddenActivation != sigmoidActivation {
 		return fmt.Errorf("unsupported hidden activation: %s", imported.HiddenActivation)
 	}
-	if imported.OutputActivation != "" && imported.OutputActivation != "sigmoid" {
+	if imported.OutputActivation != "" && imported.OutputActivation != sigmoidActivation {
 		return fmt.Errorf("unsupported output activation: %s", imported.OutputActivation)
 	}
 
@@ -495,8 +496,8 @@ func (nn *ShallowNeuralNetwork) Export() []byte {
 		BiasesHidden:          nn.biasesHidden,
 		WeightsHiddenOutput:   nn.weightsHiddenOutput,
 		BiasesOutput:          nn.biasesOutput,
-		HiddenActivation:      "sigmoid",
-		OutputActivation:      "sigmoid",
+		HiddenActivation:      sigmoidActivation,
+		OutputActivation:      sigmoidActivation,
 		FeatureNormalizations: nn.featureNormalizations,
 	}
 
