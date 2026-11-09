@@ -1,0 +1,14 @@
+metrics/monitor/cgroups_test.go
+  h_7f6b62f22ceff5 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "ddb29115c0c8690ed2f67bb93a70975a6eb2e165",
+  "prompts": {},
+  "humans": {
+    "h_7f6b62f22ceff5": {
+      "author": "Doug Steigerwald <doug.steigerwald@sas.com>"
+    }
+  }
+}
