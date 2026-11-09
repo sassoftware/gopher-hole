@@ -1,0 +1,16 @@
+.github/dependabot.yml
+  h_7f6b62f22ceff5 22-26
+.github/workflows/ci.yaml
+  h_7f6b62f22ceff5 105,111,116,118,138,147
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f7ecee7344853b5fa9504bfa9c32497cd9dfee1",
+  "prompts": {},
+  "humans": {
+    "h_7f6b62f22ceff5": {
+      "author": "Doug Steigerwald <doug.steigerwald@sas.com>"
+    }
+  }
+}
