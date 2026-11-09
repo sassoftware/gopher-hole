@@ -268,6 +268,27 @@ func TestApplyNormalization(t *testing.T) {
 			input:    42.5,
 			expected: 42.5,
 		},
+		// Clamping: values outside [min, max] must be clamped before normalizing.
+		"minmax above max clamps to 1.0": {
+			fn:       &FeatureNormalization{Type: NormalizationMinMax, Min: 0, Max: 320000},
+			input:    905314,
+			expected: 1.0,
+		},
+		"minmax below min clamps to 0.0": {
+			fn:       &FeatureNormalization{Type: NormalizationMinMax, Min: 50, Max: 320000},
+			input:    -100,
+			expected: 0.0,
+		},
+		"minmax_symmetric above max clamps to 1.0": {
+			fn:       &FeatureNormalization{Type: NormalizationMinMaxSymmetric, Min: -200, Max: 300},
+			input:    3739,
+			expected: 1.0,
+		},
+		"minmax_symmetric below min clamps to -1.0": {
+			fn:       &FeatureNormalization{Type: NormalizationMinMaxSymmetric, Min: -200, Max: 300},
+			input:    -5000,
+			expected: -1.0,
+		},
 	}
 
 	for name, tc := range tests {
