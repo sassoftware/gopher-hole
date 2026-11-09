@@ -9,10 +9,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	cpuName = "cpu"
+)
+
 func TestNewShallowNeuralNetwork(t *testing.T) {
 	metricsList := []*metrics.Metric{
-		metrics.NewMetric("cpu", []string{"server"}),
-		metrics.NewMetric("memory", []string{"server"}),
+		metrics.NewMetric(cpuName, []string{serverLabel}),
+		metrics.NewMetric("memory", []string{serverLabel}),
 	}
 
 	nn := NewShallowNeuralNetwork(2, 4, metricsList)
@@ -27,7 +31,7 @@ func TestNewShallowNeuralNetwork(t *testing.T) {
 
 func TestNewShallowNeuralNetworkWithOutputs(t *testing.T) {
 	metricsList := []*metrics.Metric{
-		metrics.NewMetric("cpu", []string{"server"}),
+		metrics.NewMetric(cpuName, []string{serverLabel}),
 	}
 
 	nn := NewShallowNeuralNetworkWithOutputs(3, 5, 2, metricsList)
@@ -79,8 +83,8 @@ func TestShallowNeuralNetwork_PredictSample(t *testing.T) {
 }
 
 func TestShallowNeuralNetwork_Predict(t *testing.T) {
-	metric1 := metrics.NewMetric("cpu", []string{"server"})
-	metric2 := metrics.NewMetric("memory", []string{"server"})
+	metric1 := metrics.NewMetric(cpuName, []string{serverLabel})
+	metric2 := metrics.NewMetric("memory", []string{serverLabel})
 
 	metric1.InsertRecord(0.7)
 	metric2.InsertRecord(0.3)
@@ -100,7 +104,7 @@ func TestShallowNeuralNetwork_Predict_PaddingInputs(t *testing.T) {
 	nn := NewShallowNeuralNetwork(3, 2, nil)
 
 	// Provide only 1 metric
-	metric := metrics.NewMetric("cpu", []string{"server"})
+	metric := metrics.NewMetric(cpuName, []string{serverLabel})
 	metric.InsertRecord(0.5)
 
 	prediction, err := nn.Predict([]*metrics.Metric{metric})
@@ -117,7 +121,7 @@ func TestShallowNeuralNetwork_Predict_TruncatingInputs(t *testing.T) {
 	// Provide 4 metrics
 	metricsList := make([]*metrics.Metric, 4)
 	for i := 0; i < 4; i++ {
-		metricsList[i] = metrics.NewMetric("metric", []string{"server"})
+		metricsList[i] = metrics.NewMetric("metric", []string{serverLabel})
 		metricsList[i].InsertRecord(float64(i) * 0.25)
 	}
 
@@ -1076,7 +1080,7 @@ func TestShallowNeuralNetwork_SetFeatureDescriptors(t *testing.T) {
 	t.Run("valid descriptors are stored", func(t *testing.T) {
 		nn := NewShallowNeuralNetwork(3, 2, nil)
 		descriptors := []*FeatureDescriptor{
-			{SourceMetricName: "cpu", UseTrend: false},
+			{SourceMetricName: cpuName, UseTrend: false},
 			{SourceMetricName: "mem", UseTrend: true},
 		}
 		err := nn.SetFeatureDescriptors(descriptors)
@@ -1086,7 +1090,7 @@ func TestShallowNeuralNetwork_SetFeatureDescriptors(t *testing.T) {
 
 	t.Run("replaces existing descriptors", func(t *testing.T) {
 		nn := NewShallowNeuralNetwork(3, 2, nil)
-		first := []*FeatureDescriptor{{SourceMetricName: "cpu", UseTrend: false}}
+		first := []*FeatureDescriptor{{SourceMetricName: cpuName, UseTrend: false}}
 		_ = nn.SetFeatureDescriptors(first)
 		second := []*FeatureDescriptor{{SourceMetricName: "mem", UseTrend: true}}
 		_ = nn.SetFeatureDescriptors(second)
@@ -1103,7 +1107,7 @@ func TestShallowNeuralNetwork_ListFeatureDescriptors(t *testing.T) {
 	t.Run("returns descriptors after set", func(t *testing.T) {
 		nn := NewShallowNeuralNetwork(3, 2, nil)
 		descriptors := []*FeatureDescriptor{
-			{SourceMetricName: "cpu", UseTrend: false},
+			{SourceMetricName: cpuName, UseTrend: false},
 		}
 		_ = nn.SetFeatureDescriptors(descriptors)
 		assert.Equal(t, descriptors, nn.ListFeatureDescriptors())
