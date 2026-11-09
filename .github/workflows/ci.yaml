@@ -20,11 +20,10 @@ on:
       - main
       - release-*
 env:
-  GO_VERSION: 1.26
+  GO_VERSION: 1.27
   ARTIFACT_DIR: ./artifacts
   LINT_DIR: ./.github/linters
   COV_DIR: ./artifacts/cov
-  BETTERLEAKS_VERSION: 1.6.0
 
 jobs:
   lint-other-files:
