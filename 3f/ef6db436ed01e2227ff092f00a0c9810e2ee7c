@@ -1,0 +1,20 @@
+lender/model.go
+  h_7f6b62f22ceff5 4-5,41-42,48-49
+lender/model_test.go
+  h_7f6b62f22ceff5 271-291
+go.sum
+  h_7f6b62f22ceff5 9-10,13-14,19-20,23-24,27-28,31-32,46-47,50-51
+go.mod
+  h_7f6b62f22ceff5 3,6-7,15-16,18-19,21-22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3fef6db436ed01e2227ff092f00a0c9810e2ee7c",
+  "prompts": {},
+  "humans": {
+    "h_7f6b62f22ceff5": {
+      "author": "Doug Steigerwald <doug.steigerwald@sas.com>"
+    }
+  }
+}
