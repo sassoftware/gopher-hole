@@ -1,0 +1,14 @@
+.github/workflows/ci.yaml
+  h_7f6b62f22ceff5 23
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "3384a14605f1b997eb2212b59b6daaad46f08927",
+  "prompts": {},
+  "humans": {
+    "h_7f6b62f22ceff5": {
+      "author": "Doug Steigerwald <doug.steigerwald@sas.com>"
+    }
+  }
+}
