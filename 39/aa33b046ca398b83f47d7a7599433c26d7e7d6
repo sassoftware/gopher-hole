@@ -1,0 +1,24 @@
+lender/lender_test.go
+  h_7f6b62f22ceff5 16-21,292-293,341,382,418,457,514,550,652,756-759,833,888,906,925,945,1096
+lender/model_test.go
+  h_7f6b62f22ceff5 29,34-36
+lender/shallow_neural.go
+  h_7f6b62f22ceff5 7,22,301,464,467,499-500
+lender/shallow_neural_test.go
+  h_7f6b62f22ceff5 12-15,18-19,34,86-87,107,124,1083,1093,1110
+metrics/metrics_test.go
+  h_7f6b62f22ceff5 12-17,148,152
+metrics/monitor/cgroups_test.go
+  h_7f6b62f22ceff5 139,153-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "39aa33b046ca398b83f47d7a7599433c26d7e7d6",
+  "prompts": {},
+  "humans": {
+    "h_7f6b62f22ceff5": {
+      "author": "Doug Steigerwald <doug.steigerwald@sas.com>"
+    }
+  }
+}
