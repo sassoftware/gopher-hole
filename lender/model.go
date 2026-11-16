@@ -1,6 +1,8 @@
 package lender
 
 import (
+	"math"
+
 	"github.com/sassoftware/gopher-hole/metrics"
 )
 
@@ -36,11 +38,15 @@ func ApplyNormalization(val float64, fn *FeatureNormalization) float64 {
 		if fn.Max == fn.Min {
 			return 0.0
 		}
+		// Clamp val to the [Min, Max] range before scaling
+		val = math.Max(fn.Min, math.Min(fn.Max, val))
 		return (val - fn.Min) / (fn.Max - fn.Min)
 	case NormalizationMinMaxSymmetric:
 		if fn.Max == fn.Min {
 			return 0.0
 		}
+		// Clamp val to the [Min, Max] range before scaling
+		val = math.Max(fn.Min, math.Min(fn.Max, val))
 		return 2*(val-fn.Min)/(fn.Max-fn.Min) - 1
 	case NormalizationZScore:
 		if fn.StdDev == 0 {

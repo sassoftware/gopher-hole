@@ -9,7 +9,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const defaultRecordsSlope = 1.1714285714285715
+const (
+	defaultRecordsSlope = 1.1714285714285715
+	fooLabel            = "foo"
+	barLabel            = "bar"
+	fooBarLabel         = "foo_bar"
+)
 
 func Test_Metric_GetName(t *testing.T) {
 	testMetric := NewMetric("test", nil)
@@ -140,11 +145,11 @@ func Test_Manager_GetMetricsFromLabel(t *testing.T) {
 	err := mgr.Register(sample)
 	assert.NoError(t, err)
 
-	foo := NewMetric("foo", []string{"foo"})
+	foo := NewMetric(fooLabel, []string{fooLabel})
 	err = mgr.Register(foo)
 	assert.NoError(t, err)
 
-	fooBar := NewMetric("foo_bar", []string{"foo", "bar"})
+	fooBar := NewMetric(fooBarLabel, []string{fooLabel, barLabel})
 	err = mgr.Register(fooBar)
 	assert.NoError(t, err)
 

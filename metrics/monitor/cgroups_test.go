@@ -14,7 +14,7 @@ func resetCgroupSync() {
 }
 
 // Helper function to setup temp cgroup files
-func setupTempCgroupFiles(t *testing.T, version CgroupVersion, memLimit, cpuQuota string) string {
+func setupTempCgroupFiles(t *testing.T, version CgroupVersion, memLimit, cpuQuota string) string { //nolint:gocognit
 	t.Helper()
 	tempDir := t.TempDir()
 
@@ -136,7 +136,7 @@ func TestReadCgroupLimits_CgroupV2(t *testing.T) {
 		},
 		{
 			name:                  "max memory unlimited v2",
-			memLimit:              "max",
+			memLimit:              noLimitIndicatorV2,
 			cpuQuota:              "100000 100000",
 			expectedMemory:        0, // remains unchanged
 			expectedCPUMillicores: 1000,
@@ -150,8 +150,8 @@ func TestReadCgroupLimits_CgroupV2(t *testing.T) {
 		},
 		{
 			name:                  "both max v2",
-			memLimit:              "max",
-			cpuQuota:              "max",
+			memLimit:              noLimitIndicatorV2,
+			cpuQuota:              noLimitIndicatorV2,
 			expectedMemory:        0,
 			expectedCPUMillicores: runtime.NumCPU() * 1000,
 		},
