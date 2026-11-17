@@ -14,7 +14,7 @@ func resetCgroupSync() {
 }
 
 // Helper function to setup temp cgroup files
-func setupTempCgroupFiles(t *testing.T, version CgroupVersion, memLimit, cpuQuota string) string {
+func setupTempCgroupFiles(t *testing.T, version CgroupVersion, memLimit, cpuQuota string) string { //nolint:gocognit
 	t.Helper()
 	tempDir := t.TempDir()
 
