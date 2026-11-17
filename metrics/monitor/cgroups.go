@@ -71,13 +71,26 @@ func getMaxMemoryFromCgroup(version CgroupVersion) float64 {
 		logger.Debug().Msgf("No memory limit detected in %s; assuming unlimited", memoryLimitFile)
 		return -1
 	}
-	maxmem, err := strconv.ParseFloat(contentStr, 64)
+	maxmem, err := strconv.ParseUint(contentStr, 10, 64)
 	if err != nil {
 		logger.Debug().Msgf("Failed to parse memory limit from %s: %v", memoryLimitFile, err)
 		return -1
 	}
-	logger.Debug().Msgf("Max memory limit: %.0f bytes", maxMemory)
-	return maxmem
+	if maxmem == 0 || (version == CgroupV1 && isUnlimitedCgroupV1MemoryLimit(maxmem)) {
+		logger.Debug().Msgf("No finite memory limit detected in %s; assuming unlimited", memoryLimitFile)
+		return -1
+	}
+	logger.Debug().Msgf("Max memory limit: %d bytes", maxmem)
+	return float64(maxmem)
+}
+
+func isUnlimitedCgroupV1MemoryLimit(limit uint64) bool {
+	maxInt := uint64(^uint(0) >> 1)
+	pageSize := os.Getpagesize()
+	if pageSize <= 0 {
+		return false
+	}
+	return limit >= maxInt-uint64(pageSize)+1
 }
 
 func getCPULimitFromCgroup(version CgroupVersion) int {
