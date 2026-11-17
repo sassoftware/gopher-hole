@@ -17,7 +17,7 @@ import (
 const (
 	ScaleUpThresholdDefault   = 0.5
 	scaleDownThresholdDefault = 0.1
-	intervalDefault           = 1 * time.Minute
+	intervalDefault           = 20 * time.Second
 	maxCreditsPerCycleDefault = 5
 
 	scaleUpEnvVar            = "LENDER_SCALE_UP"
