@@ -9,7 +9,10 @@ import (
 	"strings"
 )
 
-var memInfoFile = "/proc/meminfo"
+var (
+	memInfoFile     = "/proc/meminfo"
+	nodeMemoryLimit = getNodeMemoryLimit()
+)
 
 const goMemoryLimitMetric = "/gc/gomemlimit:bytes"
 

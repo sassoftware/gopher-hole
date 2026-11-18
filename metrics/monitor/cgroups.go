@@ -1,6 +1,7 @@
 package monitor
 
 import (
+	"math"
 	"os"
 	"runtime"
 	"strconv"
@@ -85,7 +86,7 @@ func getMaxMemoryFromCgroup(version CgroupVersion) float64 {
 }
 
 func isUnlimitedCgroupV1MemoryLimit(limit uint64) bool {
-	maxInt := uint64(^uint(0) >> 1)
+	maxInt := uint64(math.MaxInt)
 	pageSize := os.Getpagesize()
 	if pageSize <= 0 {
 		return false
