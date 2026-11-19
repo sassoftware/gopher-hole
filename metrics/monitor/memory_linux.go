@@ -9,10 +9,7 @@ import (
 	"strings"
 )
 
-var (
-	memInfoFile     = "/proc/meminfo"
-	nodeMemoryLimit = getNodeMemoryLimit()
-)
+var memInfoFile = "/proc/meminfo"
 
 const goMemoryLimitMetric = "/gc/gomemlimit:bytes"
 
@@ -28,6 +25,17 @@ func selectMemoryLimit(cgroupLimit, goLimit, nodeLimit float64) float64 {
 		return nodeLimit
 	}
 	return -1
+}
+
+func resolveMemoryLimit(cgroupLimit float64, getGoLimit, getNodeLimit func() float64) float64 {
+	goLimit, nodeLimit := -1.0, -1.0
+	if !isFiniteMemoryLimit(cgroupLimit) {
+		goLimit = getGoLimit()
+		if !isFiniteMemoryLimit(goLimit) {
+			nodeLimit = getNodeLimit()
+		}
+	}
+	return selectMemoryLimit(cgroupLimit, goLimit, nodeLimit)
 }
 
 func isFiniteMemoryLimit(limit float64) bool {
