@@ -27,6 +27,11 @@ func selectMemoryLimit(cgroupLimit, goLimit, nodeLimit float64) float64 {
 	return -1
 }
 
+func getMemoryLimit() float64 {
+	readCgroupLimits()
+	return resolveMemoryLimit(cgroupMemoryLimit, getGoMemoryLimit, getNodeMemoryLimit)
+}
+
 func resolveMemoryLimit(cgroupLimit float64, getGoLimit, getNodeLimit func() float64) float64 {
 	goLimit, nodeLimit := -1.0, -1.0
 	if !isFiniteMemoryLimit(cgroupLimit) {

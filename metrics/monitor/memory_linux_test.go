@@ -81,6 +81,53 @@ func TestSelectMemoryLimit(t *testing.T) {
 	}
 }
 
+func TestResolveMemoryLimitLazily(t *testing.T) {
+	const cgroupLimit = float64(8 * 1024 * 1024 * 1024)
+
+	t.Run("finite cgroup limit skips fallbacks", func(t *testing.T) {
+		goCalled, nodeCalled := false, false
+		limit := resolveMemoryLimit(cgroupLimit, func() float64 {
+			goCalled = true
+			return 4 * cgroupLimit
+		}, func() float64 {
+			nodeCalled = true
+			return 16 * cgroupLimit
+		})
+
+		assert.Equal(t, cgroupLimit, limit)
+		assert.False(t, goCalled)
+		assert.False(t, nodeCalled)
+	})
+
+	t.Run("finite Go limit skips node memory", func(t *testing.T) {
+		nodeCalled := false
+		limit := resolveMemoryLimit(-1, func() float64 {
+			return cgroupLimit
+		}, func() float64 {
+			nodeCalled = true
+			return 16 * cgroupLimit
+		})
+
+		assert.Equal(t, cgroupLimit, limit)
+		assert.False(t, nodeCalled)
+	})
+
+	t.Run("node memory is read when earlier limits are unavailable", func(t *testing.T) {
+		goCalled, nodeCalled := false, false
+		limit := resolveMemoryLimit(-1, func() float64 {
+			goCalled = true
+			return -1
+		}, func() float64 {
+			nodeCalled = true
+			return 16 * cgroupLimit
+		})
+
+		assert.Equal(t, 16*cgroupLimit, limit)
+		assert.True(t, goCalled)
+		assert.True(t, nodeCalled)
+	})
+}
+
 func TestNormalizeGoMemoryLimit(t *testing.T) {
 	const gib = uint64(1024 * 1024 * 1024)
 	assert.Equal(t, float64(gib), normalizeGoMemoryLimit(gib))

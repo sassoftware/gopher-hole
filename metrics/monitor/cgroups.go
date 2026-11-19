@@ -9,7 +9,10 @@ import (
 	"sync"
 )
 
-var cgroupSyncOnce sync.Once
+var (
+	cgroupSyncOnce    sync.Once
+	cgroupMemoryLimit float64
+)
 
 // CgroupVersion represents the cgroup version in use
 type CgroupVersion int
@@ -46,7 +49,8 @@ func detectCgroupVersion() CgroupVersion {
 func readCgroupLimits() {
 	cgroupSyncOnce.Do(func() {
 		detectedCgroupVersion := detectCgroupVersion()
-		maxMemory = getMaxMemoryFromCgroup(detectedCgroupVersion)
+		cgroupMemoryLimit = getMaxMemoryFromCgroup(detectedCgroupVersion)
+		maxMemory = cgroupMemoryLimit
 		cpuMillicoreLimit = getCPULimitFromCgroup(detectedCgroupVersion)
 	})
 }
