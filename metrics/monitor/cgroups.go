@@ -10,7 +10,10 @@ import (
 )
 
 var (
-	cgroupSyncOnce    sync.Once
+	cgroupSyncOnce sync.Once
+	// cgroupMemoryLimit caches the raw cgroup limit (-1 if none is finite) so
+	// getMemoryLimit can recheck GOMEMLIMIT and node memory without rereading
+	// cgroup files.
 	cgroupMemoryLimit float64
 )
 
