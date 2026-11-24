@@ -23,8 +23,12 @@ const (
 var (
 	cpuMillicoreHistory = safebuffer.New(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
 	memHistory          = safebuffer.New(int(procStatsHistoryDuration.Seconds() / procStatsCollectionFrequency.Seconds()))
-	maxMemory           float64
-	cpuMillicoreLimit   int
+	// maxMemory holds the selected limit (cgroup, GOMEMLIMIT, then node MemTotal);
+	// -1 means unknown.
+	maxMemory float64
+	// cpuMillicoreLimit holds the cgroup CPU quota in millicores, or the host CPU
+	// count fallback when unbounded; it is used to calculate CPU availability.
+	cpuMillicoreLimit int
 )
 
 type ProcessStats struct {

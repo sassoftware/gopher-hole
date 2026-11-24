@@ -138,7 +138,7 @@ func TestReadCgroupLimits_CgroupV2(t *testing.T) {
 			name:                  "max memory unlimited v2",
 			memLimit:              noLimitIndicatorV2,
 			cpuQuota:              "100000 100000",
-			expectedMemory:        0, // remains unchanged
+			expectedMemory:        -1,
 			expectedCPUMillicores: 1000,
 		},
 		{
@@ -152,7 +152,7 @@ func TestReadCgroupLimits_CgroupV2(t *testing.T) {
 			name:                  "both max v2",
 			memLimit:              noLimitIndicatorV2,
 			cpuQuota:              noLimitIndicatorV2,
-			expectedMemory:        0,
+			expectedMemory:        -1,
 			expectedCPUMillicores: runtime.NumCPU() * 1000,
 		},
 		{
@@ -207,7 +207,7 @@ func TestReadCgroupLimits_CgroupV2(t *testing.T) {
 			readCgroupLimits()
 
 			// Verify results
-			if tt.expectedMemory > 0 && maxMemory != tt.expectedMemory {
+			if maxMemory != tt.expectedMemory {
 				t.Errorf("maxMemory = %v, want %v", maxMemory, tt.expectedMemory)
 			}
 
@@ -241,10 +241,17 @@ func TestReadCgroupLimits_CgroupV1(t *testing.T) {
 			expectedCPUMillicores: runtime.NumCPU() * 1000, // defaults to NumCPU * 1000
 		},
 		{
-			name:                  "high memory limit v1",
+			name:                  "negative memory limit sentinel v1",
+			memLimit:              "-1",
+			cpuQuota:              "100000",
+			expectedMemory:        -1,
+			expectedCPUMillicores: 1000,
+		},
+		{
+			name:                  "unlimited memory sentinel v1",
 			memLimit:              "9223372036854771712", // Very high limit (basically unlimited)
 			cpuQuota:              "100000",
-			expectedMemory:        9223372036854771712,
+			expectedMemory:        -1,
 			expectedCPUMillicores: 1000,
 		},
 		{
@@ -295,7 +302,7 @@ func TestReadCgroupLimits_CgroupV1(t *testing.T) {
 			readCgroupLimits()
 
 			// Verify results
-			if tt.expectedMemory > 0 && maxMemory != tt.expectedMemory {
+			if maxMemory != tt.expectedMemory {
 				t.Errorf("maxMemory = %v, want %v", maxMemory, tt.expectedMemory)
 			}
 

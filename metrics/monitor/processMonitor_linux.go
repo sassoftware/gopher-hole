@@ -5,6 +5,6 @@ import (
 )
 
 func MonitorProcessStats(ctx context.Context) {
-	readCgroupLimits()
+	maxMemory = getMemoryLimit()
 	processMonitorNonWindows(ctx)
 }
